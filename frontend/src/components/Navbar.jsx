@@ -14,10 +14,10 @@ const Navbar = () => {
         <Link to="/employers" className="text-sm text-[#6B7A8D] font-medium hover:text-[#1A2B4A]">For Employers</Link>
         
         <button className="border-2 border-[#1A2B4A] text-[#1A2B4A] px-5 py-2 rounded-full text-sm font-medium hover:bg-[#1A2B4A] hover:text-white transition">
-          Sign in
+          Login
         </button>
         <button className="bg-[#1A2B4A] text-white px-7 py-2.5 rounded-full text-sm font-semibold hover:bg-[#14213A] transition">
-          Post a Job
+          Register
         </button>
       </div>
     </nav>

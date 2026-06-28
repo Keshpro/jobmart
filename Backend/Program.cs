@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. Database Connection Configuration (SQL Server)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // 2. JWT Authentication Setup (Login / Register වලට අවශ්‍යයි)
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyForAiRecruitmentPlatform2026";
