@@ -8,8 +8,13 @@ namespace Backend.Models
         public string Email { get; set; } = string.Empty;
         public string PasswordHash { get; set; } = string.Empty;
         public string Role { get; set; } = "Candidate"; // "Admin", "Recruiter", "Candidate"
+
+        public string? JobTitle { get; set; } = string.Empty;
+
+        public string? ResumePath { get; set; } = string.Empty; // CV saved File Path
+public string? ExtractedSkills { get; set; } = string.Empty; // AI (Comma-separated)
         
-        // Navigation Properties (එක්කෙනෙක්ට Applications ගොඩක් තියෙන්න පුළුවන්)
+        // Navigation property for applications submitted by the user (if the user is a candidate)
         public ICollection<Application>? Applications { get; set; }
     }
 }

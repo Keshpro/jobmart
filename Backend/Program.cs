@@ -4,15 +4,16 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Backend.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 1. Database Connection Configuration (SQL Server)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString));
 
-// 2. JWT Authentication Setup (Login / Register වලට අවශ්‍යයි)
+// 2. JWT Authentication Setup 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyForAiRecruitmentPlatform2026";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -26,16 +27,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Authorization සේවාව ඇතුලත් කිරීම (Roles පාවිච්චි කරන්න මේක අනිවාර්යයි)
+// Authorization part
 builder.Services.AddAuthorization();
 
-// 3. CORS Setup (React Frontend එකට කතා කරන්න අවසර දීම)
+// 3. CORS Setup (Authorized React Frontend)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy =>
         {
-            // React/Vite run වෙන සාමාන්‍ය port එක (5173) මෙතනට දාලා තියෙන්නේ
+            // React/Vite run on port 5173, so we allow that origin
             policy.WithOrigins("http://localhost:5173") 
                   .AllowAnyHeader()
                   .AllowAnyMethod();
@@ -45,12 +46,12 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// 4. Swagger Setup with JWT Support (Bug Fix එක මෙතනයි)
+// 4. Swagger Setup with JWT Support 
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "AI Recruitment API", Version = "v1" });
     
-    // Swagger UI එකට "Authorize" Button එක එකතු කිරීම
+    // Swagger UI "Authorize" Button 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header. \r\n\r\nType 'Bearer' [space] and then your token.\r\nExample: 'Bearer 12345abcdef'",
@@ -87,13 +88,55 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// CORS එක Enable කිරීම (හැමවෙලේම Authorization වලට උඩින් තියෙන්න ඕනේ)
+// Allows React frontend to access backend APIs
 app.UseCors("AllowReactApp");
 
-// Security - අනිවාර්යයෙන්ම මේ පිළිවෙලටම තියෙන්න ඕනේ 
-app.UseAuthentication(); // කවුද කියලා අඳුරගන්නවා (Login)
-app.UseAuthorization();  // මොනවද කරන්න පුළුවන් කියලා බලනවා (Roles)
+// Security Middleware
+app.UseAuthentication(); // Authentication (Login)
+app.UseAuthorization();  // Authorization (Roles)
 
 app.MapControllers();
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    var context = services.GetRequiredService<ApplicationDbContext>();
+
+    try
+    {
+        if (context.Database.GetPendingMigrations().Any())
+        {
+            context.Database.Migrate();
+            Console.WriteLine("🔄 [DATABASE]: Pending migrations applied successfully!");
+        }
+        else
+        {
+    
+            context.Database.EnsureCreated();
+        }
+
+        if (!context.RoleAccounts.Any(r => r.Email == "admin@gmail.com"))
+        {
+            var adminStaff = new RoleAccount
+            {
+                Email = "admin@gmail.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), 
+                Role = "Admin"
+            };
+
+            context.RoleAccounts.Add(adminStaff);
+            context.SaveChanges();
+            Console.WriteLine("🚀 [SEEDING SUCCESS]: admin@gmail.com has been added to RoleAccounts table as Admin!");
+        }
+        else
+        {
+            Console.WriteLine("✅ [DB CHECK]: Admin (admin@gmail.com) already exists in RoleAccounts.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"❌ [DB ERROR]: Something went wrong during database initialization: {ex.Message}");
+    }
+}
 
 app.Run();

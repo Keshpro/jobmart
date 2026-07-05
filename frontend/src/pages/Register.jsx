@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const styles = {
@@ -46,31 +46,6 @@ const styles = {
     position: 'relative',
     zIndex: 1,
     boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
-  },
-  logo: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    marginBottom: '1.5rem',
-  },
-  logoDot: {
-    width: '28px',
-    height: '28px',
-    borderRadius: '8px',
-    background: 'linear-gradient(135deg, #1d4ed8, #3b82f6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '13px',
-    fontWeight: '700',
-    color: '#fff',
-    letterSpacing: '-0.5px',
-  },
-  logoText: {
-    fontSize: '15px',
-    fontWeight: '600',
-    color: 'rgba(147, 197, 253, 0.85)',
-    letterSpacing: '0.02em',
   },
   title: {
     fontFamily: "'DM Serif Display', Georgia, serif",
@@ -240,6 +215,53 @@ const styles = {
     fontWeight: '600',
     textDecoration: 'none',
   },
+  popupOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    background: 'rgba(10, 22, 40, 0.85)',
+    backdropFilter: 'blur(8px)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  popupBox: {
+    background: 'rgba(255, 255, 255, 0.1)',
+    border: '1px solid rgba(147, 197, 253, 0.3)',
+    borderRadius: '20px',
+    padding: '3rem 2rem',
+    textAlign: 'center',
+    maxWidth: '400px',
+    width: '90%',
+    boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+    animation: 'popupFadeIn 0.4s ease-out forwards',
+  },
+  popupIcon: {
+    fontSize: '48px',
+    color: '#34d399',
+    marginBottom: '1rem',
+  },
+  popupTitle: {
+    fontFamily: "'DM Serif Display', serif",
+    fontSize: '24px',
+    color: '#fff',
+    marginBottom: '10px',
+  },
+  popupText: {
+    color: 'rgba(147, 197, 253, 0.8)',
+    fontSize: '14px',
+    lineHeight: '1.5',
+    marginBottom: '20px',
+  },
+  popupCountdown: {
+    fontSize: '36px',
+    fontWeight: 'bold',
+    color: '#60a5fa',
+    margin: '20px 0',
+  },
 };
 
 const getPasswordStrength = (password) => {
@@ -260,11 +282,17 @@ const getPasswordStrength = (password) => {
 };
 
 const Register = () => {
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const navigate = useNavigate();
+  // State variables
+  const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [loading, setLoading] = useState(false);
+  
+  // Popup and Countdown state
+  const [showPopup, setShowPopup] = useState(false);
+  const [countdown, setCountdown] = useState(10);
 
   const strength = getPasswordStrength(formData.password);
 
@@ -282,17 +310,29 @@ const Register = () => {
         email: formData.email,
         password: formData.password
       });
-
-      alert("Registration successful! Redirecting to login...");
-      navigate('/login'); // Redirect to login page after successful registration
-
+      
+      // Show popup on success
+      setShowPopup(true);
     } catch (error) {
       alert("Registration failed. Please check your data.");
       console.error(error);
-    } finally {
       setLoading(false);
     }
   };
+
+  // Handle Countdown Logic
+  useEffect(() => {
+    let timer;
+    if (showPopup && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (showPopup && countdown === 0) {
+      navigate('/login');
+    }
+    return () => clearInterval(timer);
+  }, [showPopup, countdown, navigate]);
+
   const inputStyle = (field) => ({
     ...styles.input,
     borderColor: focusedField === field
@@ -303,7 +343,8 @@ const Register = () => {
       : 'rgba(255,255,255,0.04)',
   });
 
-  const isValid = formData.name && formData.email && formData.password.length >= 6 && agreed;
+  // BUG FIXED: Changed formData.name to formData.firstName && formData.lastName
+  const isValid = formData.firstName && formData.lastName && formData.email && formData.password.length >= 6 && agreed;
 
   return (
     <>
@@ -316,16 +357,34 @@ const Register = () => {
         href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
       />
 
+      {/* Success Popup Notification */}
+      {showPopup && (
+        <div style={styles.popupOverlay}>
+          <div style={styles.popupBox}>
+            <i className="ti ti-circle-check-filled" style={styles.popupIcon}></i>
+            <h2 style={styles.popupTitle}>Registration Successful!</h2>
+            <p style={styles.popupText}>
+              Welcome to JobMart, {formData.firstName}. Your account has been created successfully. You will be redirected to the login page shortly.
+            </p>
+            <div style={styles.popupCountdown}>{countdown}</div>
+            <button 
+              onClick={() => navigate('/login')}
+              style={{...styles.btn, marginTop: '20px', background: 'transparent', border: '1px solid #60a5fa'}}
+            >
+              Login Now
+            </button>
+          </div>
+        </div>
+      )}
+
       <div style={styles.page}>
         <div style={styles.glowTop} />
         <div style={styles.glowBottom} />
 
         <div style={styles.card}>
-
           <h1 style={styles.title}>Create Account</h1>
           <p style={styles.subtitle}>Join 50,000+ professionals finding their dream job.</p>
 
-          {/* Trust badges */}
           <div style={styles.badgeRow}>
             <span style={styles.badge}>
               <i className="ti ti-shield-check" style={{ color: '#60a5fa', fontSize: '12px' }} />
@@ -342,45 +401,44 @@ const Register = () => {
           </div>
 
           <form onSubmit={handleSubmit}>
-            {/* First Name */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>First Name</label>
-              <div style={styles.inputWrap}>
-                <i className="ti ti-user" style={styles.inputIcon} />
-                <input
-                  name="firstName"
-                  type="text"
-                  placeholder="Jane "
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField('firstName')}
-                  onBlur={() => setFocusedField(null)}
-                  style={inputStyle('firstName')}
-                  required
-                />
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ ...styles.fieldGroup, flex: 1 }}>
+                <label style={styles.label}>First Name</label>
+                <div style={styles.inputWrap}>
+                  <i className="ti ti-user" style={styles.inputIcon} />
+                  <input
+                    name="firstName"
+                    type="text"
+                    placeholder="Jane"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    onFocus={() => setFocusedField('firstName')}
+                    onBlur={() => setFocusedField(null)}
+                    style={inputStyle('firstName')}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div style={{ ...styles.fieldGroup, flex: 1 }}>
+                <label style={styles.label}>Last Name</label>
+                <div style={styles.inputWrap}>
+                  <i className="ti ti-user" style={styles.inputIcon} />
+                  <input
+                    name="lastName"
+                    type="text"
+                    placeholder="Smith"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    onFocus={() => setFocusedField('lastName')}
+                    onBlur={() => setFocusedField(null)}
+                    style={inputStyle('lastName')}
+                    required
+                  />
+                </div>
               </div>
             </div>
 
-            {/* last Name */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>Last Name</label>
-              <div style={styles.inputWrap}>
-                <i className="ti ti-user" style={styles.inputIcon} />
-                <input
-                  name="lastName"
-                  type="text"
-                  placeholder=" Smith"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  onFocus={() => setFocusedField('lastName')}
-                  onBlur={() => setFocusedField(null)}
-                  style={inputStyle('lastName')}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Email */}
             <div style={styles.fieldGroup}>
               <label style={styles.label}>Email Address</label>
               <div style={styles.inputWrap}>
@@ -399,7 +457,6 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Password */}
             <div style={styles.fieldGroup}>
               <label style={styles.label}>Password</label>
               <div style={styles.inputWrap}>
@@ -424,7 +481,6 @@ const Register = () => {
                 </button>
               </div>
 
-              {/* Strength bar */}
               {formData.password && (
                 <>
                   <div style={styles.strengthBar}>
@@ -442,7 +498,6 @@ const Register = () => {
               )}
             </div>
 
-            {/* Terms */}
             <div style={styles.terms}>
               <input
                 type="checkbox"
@@ -459,7 +514,6 @@ const Register = () => {
               </label>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={!isValid || loading}
@@ -497,6 +551,7 @@ const Register = () => {
 
         <style>{`
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+          @keyframes popupFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
           input::placeholder { color: rgba(147,197,253,0.28); }
         `}</style>
       </div>

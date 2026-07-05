@@ -7,7 +7,7 @@ namespace Backend.Models
         public string ResumeUrl { get; set; } = string.Empty; // Cloud Storage Link එක
         public string Status { get; set; } = "Pending"; // "Pending", "Shortlisted", "Rejected"
         
-        // AI එකෙන් දෙන ලකුණු
+        // AI scores
         public double AiMatchScore { get; set; } 
 
         // Foreign Keys

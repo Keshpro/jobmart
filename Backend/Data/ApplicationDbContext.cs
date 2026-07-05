@@ -9,24 +9,31 @@ namespace Backend.Data
         {
         }
 
+        // Core Platform Tables
         public DbSet<User> Users { get; set; }
         public DbSet<JobPosting> JobPostings { get; set; }
         public DbSet<Application> Applications { get; set; }
 
+        // Corporate Staff / Internal Roles Table
+        public DbSet<RoleAccount> RoleAccounts { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // මේකෙන් තමයි Relationships හදන්නේ (උදා: එක Job එකකට Applications ගොඩක්)
+            base.OnModelCreating(modelBuilder);
+
+            // 1. Relationship: Application -> JobPosting (One-To-Many)
             modelBuilder.Entity<Application>()
                 .HasOne(a => a.JobPosting)
                 .WithMany(j => j.Applications)
                 .HasForeignKey(a => a.JobPostingId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict); // Prevents cascade cycles
 
+            // 2. Relationship: Application -> User/Candidate (One-To-Many)
             modelBuilder.Entity<Application>()
                 .HasOne(a => a.Candidate)
                 .WithMany(u => u.Applications)
                 .HasForeignKey(a => a.CandidateId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict); // Prevents cascade cycles
         }
     }
 }
