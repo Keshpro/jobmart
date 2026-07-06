@@ -13,30 +13,39 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// 2. JWT Authentication Setup 
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyForAiRecruitmentPlatform2026";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-            ValidateIssuer = false, 
-            ValidateAudience = false 
-        };
-    });
+// 2. Real JWT Authentication Architecture Setup 
+// appsettings.json එකෙන් Key එක කියවයි, නැතහොත් strong fallback signature එකක් භාවිතා කරයි
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "JobMart_Enterprise_Secure_Dynamic_JWT_Secret_Key_2026_Token_Validation";
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
-// Authorization part
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.RequireHttpsMetadata = false; // Development නිසාවෙන් HTTPS චෙක් කිරීම අක්‍රීයයි
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        ValidateIssuer = false, // Localhost නිසා Domain Issuer check කිරීම මඟහරියි
+        ValidateAudience = false,
+        ClockSkew = TimeSpan.Zero // Token එක Expire වූ සැනින් ක්ෂණිකව අවලංගු වීමට
+    };
+});
+
+// Authorization layer activation
 builder.Services.AddAuthorization();
 
-// 3. CORS Setup (Authorized React Frontend)
+// 3. CORS Setup (Authorized React Frontend Port 5173)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
         policy =>
         {
-            // React/Vite run on port 5173, so we allow that origin
             policy.WithOrigins("http://localhost:5173") 
                   .AllowAnyHeader()
                   .AllowAnyMethod();
@@ -46,15 +55,15 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// 4. Swagger Setup with JWT Support 
+// 4. Swagger Setup with JWT Bearer Support 
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "AI Recruitment API", Version = "v1" });
     
-    // Swagger UI "Authorize" Button 
+    // Swagger UI "Authorize" Button configuration
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header. \r\n\r\nType 'Bearer' [space] and then your token.\r\nExample: 'Bearer 12345abcdef'",
+        Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 12345abcdef\"",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -88,15 +97,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// Allows React frontend to access backend APIs
+// Allows React frontend to access backend APIs securely
 app.UseCors("AllowReactApp");
 
-// Security Middleware
-app.UseAuthentication(); // Authentication (Login)
-app.UseAuthorization();  // Authorization (Roles)
+// Security Middleware Pipeline Enforcers (Authentication must be called BEFORE Authorization)
+app.UseAuthentication(); 
+app.UseAuthorization();  
 
 app.MapControllers();
 
+// 5. Automated Database Initialization & Seeding Engine
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -104,6 +114,7 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
+        // Pending Migrations පවතී නම් ස්වයංක්‍රීයව Database එකට Apply කරයි
         if (context.Database.GetPendingMigrations().Any())
         {
             context.Database.Migrate();
@@ -111,16 +122,16 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-    
             context.Database.EnsureCreated();
         }
 
+        // Default Root Administrator Account Seed Interceptor
         if (!context.RoleAccounts.Any(r => r.Email == "admin@gmail.com"))
         {
             var adminStaff = new RoleAccount
             {
                 Email = "admin@gmail.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), 
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), // Cryptographic BCrypt Hashing
                 Role = "Admin"
             };
 

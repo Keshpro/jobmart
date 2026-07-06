@@ -3,6 +3,10 @@ using Microsoft.EntityFrameworkCore;
 using Backend.Data;
 using Backend.Models;
 using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Backend.Controllers
 {
@@ -11,20 +15,47 @@ namespace Backend.Controllers
     public class AuthController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public AuthController(ApplicationDbContext context)
+        // Dependency Injection හරහා configuration සහ ඩේටාබේස් සම්බන්ධතාවය ලබා ගැනීම
+        public AuthController(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
+        }
+
+        // ─── 🔐 INTERNAL CRYPTOGRAPHIC JWT TOKEN GENERATION ENGINE ────────────────
+        private string GenerateJwtToken(string email, string role)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            // Program.cs එකේ ඇති එකම Key එකම configuration එකෙන් ලබා ගනී
+            var jwtKey = _configuration["Jwt:Key"] ?? "JobMart_Enterprise_Secure_Dynamic_JWT_Secret_Key_2026_Token_Validation";
+            var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.Email, email),
+                    new Claim(ClaimTypes.Role, role)
+                }),
+                Expires = DateTime.UtcNow.AddHours(3), // Token එක පැය 3ක් වලංගු වේ
+                SigningCredentials = new SigningCredentials(
+                    new SymmetricSecurityKey(keyBytes), 
+                    SecurityAlgorithms.HmacSha256Signature
+                )
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
         }
 
         // ─── PUBLIC CANDIDATE REGISTER ENDPOINT (Users Table) ───
-
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             try
             {
-                // Check if the email already exists in Candidate Users table
                 if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 {
                     return BadRequest(new { message = "Email address is already registered." });
@@ -36,8 +67,8 @@ namespace Backend.Controllers
                     LastName = dto.LastName,
                     Email = dto.Email,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                    Role = "Candidate", // Default Assignment
-                    JobTitle = "Unassigned" // Default safe primitive assignment to prevent SQL insertion crashes
+                    Role = "Candidate",
+                    JobTitle = "Unassigned" 
                 };
 
                 _context.Users.Add(newCandidate);
@@ -52,9 +83,7 @@ namespace Backend.Controllers
             }
         }
 
-
         // ─── ADMIN ROLE & ACCOUNT PROVISIONING ENDPOINT ───
-
         [HttpPost("admin-register")]
         public async Task<IActionResult> AdminRegister([FromBody] AdminRegisterDto dto)
         {
@@ -81,30 +110,32 @@ namespace Backend.Controllers
             return Ok(new { message = $"{dto.Role} account created successfully!" });
         }
 
-
-        // ─── PLATFORM AUTHENTICATION (LOGIN FLOW) ───
-
+        // ─── PLATFORM AUTHENTICATION (LOGIN FLOW WITH REAL JWT) ───
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
+            // 1. Corporate Staff Role Accounts (Admin/Recruiter/Hiring Manager) Check
             var staffUser = await _context.RoleAccounts.FirstOrDefaultAsync(r => r.Email == dto.Email);
             if (staffUser != null && BCrypt.Net.BCrypt.Verify(dto.Password, staffUser.PasswordHash))
             {
+                var token = GenerateJwtToken(staffUser.Email, staffUser.Role);
                 return Ok(new
                 {
-                    Token = "mock-jwt-token-or-real-generation-here",
+                    Token = token,
                     FirstName = "Staff",
                     LastName = staffUser.Role,
                     Role = staffUser.Role
                 });
             }
 
+            // 2. Candidate Users Table Check
             var candidateUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (candidateUser != null && BCrypt.Net.BCrypt.Verify(dto.Password, candidateUser.PasswordHash))
             {
+                var token = GenerateJwtToken(candidateUser.Email, "Candidate");
                 return Ok(new
                 {
-                    Token = "mock-jwt-token-or-real-generation-here",
+                    Token = token,
                     FirstName = candidateUser.FirstName,
                     LastName = candidateUser.LastName,
                     Role = "Candidate"
@@ -114,9 +145,7 @@ namespace Backend.Controllers
             return Unauthorized(new { message = "Invalid email or password parameters." });
         }
 
-
         // ─── CANDIDATE MANAGEMENT ENDPOINTS (Users Table) ───
-
         [HttpGet("candidates")]
         public async Task<IActionResult> GetCandidates()
         {
@@ -162,9 +191,7 @@ namespace Backend.Controllers
             return Ok(new { message = "Candidate deleted and IDs successfully resequenced." });
         }
 
-
         // ─── INTERNAL ROLE MANAGEMENT ENDPOINTS (RoleAccounts Table) ───
-
         [HttpGet("role-accounts")]
         public async Task<IActionResult> GetRoleAccounts()
         {
@@ -180,7 +207,8 @@ namespace Backend.Controllers
             var account = await _context.RoleAccounts.FindAsync(id);
             if (account == null) return NotFound(new { message = "System account not found." });
 
-            if (account.Email == "amal@gmail.com")
+            // Program.cs එකේ seed වන ප්‍රධාන ගිණුම ආරක්ෂා කිරීමට වෙනස් කළා
+            if (account.Email == "admin@gmail.com")
                 return BadRequest(new { message = "Root system operator cannot be terminated." });
 
             _context.RoleAccounts.Remove(account);
@@ -202,7 +230,6 @@ namespace Backend.Controllers
     }
 
     // ─── DATA TRANSFER OBJECTS (DTOs) ───
-
     public class RegisterDto
     {
         [Required]
@@ -236,6 +263,7 @@ namespace Backend.Controllers
     public class LoginDto
     {
         [Required]
+        [EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required]

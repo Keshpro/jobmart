@@ -533,23 +533,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#F4F2FA] font-sans">
-      <header className="bg-white border-b border-[#EDE8F5] sticky top-0 z-40">
-        <div className="max-w-screen-xl mx-auto px-6 py-3.5 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[#6C3FF4] flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            </div>
-            <div>
-              <span className="text-sm font-black tracking-tight text-[#0F172A]">JobMart</span>
-              <span className="ml-2 text-[10px] font-bold uppercase tracking-widest text-[#6C3FF4] bg-[#6C3FF4]/10 px-1.5 py-0.5 rounded">Admin Management Environment</span>
-            </div>
-          </div>
-          <button onClick={() => { localStorage.clear(); navigate('/login'); }} className="text-xs text-red-500 border border-red-100 px-3 py-1.5 rounded-xl hover:bg-red-50 transition font-semibold flex items-center gap-1.5">
-            <Icon.Logout /> Logout Account
-          </button>
-        </div>
-      </header>
-
       <div className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
         <div className="bg-white border border-[#EDE8F5] rounded-2xl overflow-hidden shadow-sm">
           {/* Navigation Bar Tabs Selection */}

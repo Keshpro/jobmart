@@ -8,7 +8,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'linear-gradient(135deg, #0a1628 0%, #0d1f3c 40%, #0f2647 70%, #0a1628 100%)',
+    background: 'linear-gradient(135deg, #1F3B2C 0%, #2E5A3F 45%, #4A7C59 100%)',
     padding: '2rem',
     position: 'relative',
     overflow: 'hidden',
@@ -20,7 +20,7 @@ const styles = {
     left: '-100px',
     width: '400px',
     height: '400px',
-    background: 'radial-gradient(circle, rgba(59,130,246,0.18) 0%, transparent 70%)',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.10) 0%, transparent 70%)',
     borderRadius: '50%',
     pointerEvents: 'none',
   },
@@ -30,34 +30,34 @@ const styles = {
     right: '-80px',
     width: '320px',
     height: '320px',
-    background: 'radial-gradient(circle, rgba(96,165,250,0.12) 0%, transparent 70%)',
+    background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%)',
     borderRadius: '50%',
     pointerEvents: 'none',
   },
   card: {
-    background: 'rgba(255, 255, 255, 0.05)',
-    border: '1px solid rgba(147, 197, 253, 0.2)',
+    background: 'rgba(255, 255, 255, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
     borderRadius: '20px',
     padding: '2.5rem 2rem',
     width: '100%',
     maxWidth: '420px',
-    backdropFilter: 'blur(24px)',
-    WebkitBackdropFilter: 'blur(24px)',
     position: 'relative',
     zIndex: 1,
-    boxShadow: '0 8px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    boxShadow: '0 8px 32px rgba(15,42,25,0.35), inset 0 1px 0 rgba(255,255,255,0.15)',
   },
   title: {
     fontFamily: "'DM Serif Display', Georgia, serif",
     fontSize: '28px',
     fontWeight: '400',
-    color: '#e8f4ff',
+    color: '#FFFFFF',
     margin: '0 0 4px',
     letterSpacing: '-0.3px',
   },
   subtitle: {
     fontSize: '13.5px',
-    color: 'rgba(147, 197, 253, 0.65)',
+    color: 'rgba(255,255,255,0.7)',
     margin: '0 0 1.6rem',
   },
   badgeRow: {
@@ -70,12 +70,12 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     gap: '5px',
-    background: 'rgba(59,130,246,0.1)',
-    border: '1px solid rgba(96,165,250,0.18)',
+    background: 'rgba(255,255,255,0.1)',
+    border: '1px solid rgba(255,255,255,0.25)',
     borderRadius: '20px',
     padding: '3px 10px 3px 8px',
     fontSize: '11px',
-    color: 'rgba(147, 197, 253, 0.75)',
+    color: '#FFFFFF',
   },
   fieldGroup: {
     marginBottom: '1rem',
@@ -86,7 +86,7 @@ const styles = {
     fontWeight: '500',
     letterSpacing: '0.07em',
     textTransform: 'uppercase',
-    color: 'rgba(147, 197, 253, 0.6)',
+    color: 'rgba(255,255,255,0.65)',
     marginBottom: '6px',
   },
   inputWrap: {
@@ -98,22 +98,22 @@ const styles = {
     position: 'absolute',
     left: '12px',
     fontSize: '15px',
-    color: 'rgba(96, 165, 250, 0.5)',
+    color: 'rgba(255,255,255,0.5)',
     pointerEvents: 'none',
     lineHeight: 1,
   },
   input: {
     width: '100%',
     boxSizing: 'border-box',
-    background: 'rgba(255, 255, 255, 0.04)',
-    border: '1px solid rgba(147, 197, 253, 0.18)',
+    background: 'rgba(255,255,255,0.08)',
+    border: '1px solid rgba(255,255,255,0.2)',
     borderRadius: '10px',
     padding: '10px 12px 10px 36px',
     fontSize: '14px',
-    color: '#e8f4ff',
+    color: '#FFFFFF',
     outline: 'none',
     fontFamily: "'Inter', sans-serif",
-    transition: 'border-color 0.2s, background 0.2s',
+    transition: 'border-color 0.2s, background 0.2s, box-shadow 0.2s',
   },
   passwordToggle: {
     position: 'absolute',
@@ -122,7 +122,7 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     fontSize: '15px',
-    color: 'rgba(96, 165, 250, 0.45)',
+    color: 'rgba(255,255,255,0.5)',
     padding: '0',
     lineHeight: 1,
   },
@@ -135,13 +135,13 @@ const styles = {
     flex: 1,
     height: '3px',
     borderRadius: '2px',
-    background: active ? color : 'rgba(147,197,253,0.12)',
+    background: active ? color : 'rgba(255,255,255,0.2)',
     transition: 'background 0.3s',
   }),
   strengthLabel: {
     fontSize: '11px',
     marginTop: '4px',
-    color: 'rgba(147,197,253,0.5)',
+    color: 'rgba(255,255,255,0.65)',
   },
   terms: {
     display: 'flex',
@@ -153,32 +153,33 @@ const styles = {
     marginTop: '2px',
     width: '15px',
     height: '15px',
-    accentColor: '#2563eb',
+    accentColor: '#FFFFFF',
     cursor: 'pointer',
     flexShrink: 0,
   },
   termsText: {
     fontSize: '12px',
-    color: 'rgba(147, 197, 253, 0.55)',
+    color: 'rgba(255,255,255,0.65)',
     lineHeight: '1.5',
   },
   termsLink: {
-    color: '#60a5fa',
-    textDecoration: 'none',
+    color: '#FFFFFF',
+    fontWeight: '500',
+    textDecoration: 'underline',
   },
   btn: {
     width: '100%',
-    background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+    background: '#FFFFFF',
     border: 'none',
     borderRadius: '11px',
     padding: '12px',
     fontSize: '14px',
     fontWeight: '600',
-    color: '#fff',
+    color: '#1F3B2C',
     cursor: 'pointer',
     letterSpacing: '0.02em',
     fontFamily: "'Inter', sans-serif",
-    boxShadow: '0 4px 18px rgba(37,99,235,0.45)',
+    boxShadow: '0 4px 18px rgba(0,0,0,0.2)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -199,21 +200,21 @@ const styles = {
   dividerLine: {
     flex: 1,
     height: '1px',
-    background: 'rgba(147, 197, 253, 0.1)',
+    background: 'rgba(255,255,255,0.2)',
   },
   dividerText: {
     fontSize: '11.5px',
-    color: 'rgba(147, 197, 253, 0.35)',
+    color: 'rgba(255,255,255,0.5)',
   },
   signinRow: {
     textAlign: 'center',
     fontSize: '13px',
-    color: 'rgba(147, 197, 253, 0.5)',
+    color: 'rgba(255,255,255,0.7)',
   },
   signinLink: {
-    color: '#60a5fa',
+    color: '#FFFFFF',
     fontWeight: '600',
-    textDecoration: 'none',
+    textDecoration: 'underline',
   },
   popupOverlay: {
     position: 'fixed',
@@ -221,37 +222,39 @@ const styles = {
     left: 0,
     width: '100%',
     height: '100%',
-    background: 'rgba(10, 22, 40, 0.85)',
-    backdropFilter: 'blur(8px)',
+    background: 'rgba(15, 42, 25, 0.55)',
+    backdropFilter: 'blur(6px)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
   popupBox: {
-    background: 'rgba(255, 255, 255, 0.1)',
-    border: '1px solid rgba(147, 197, 253, 0.3)',
+    background: 'rgba(255, 255, 255, 0.12)',
+    border: '1px solid rgba(255, 255, 255, 0.25)',
     borderRadius: '20px',
     padding: '3rem 2rem',
     textAlign: 'center',
     maxWidth: '400px',
     width: '90%',
-    boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(24px)',
+    WebkitBackdropFilter: 'blur(24px)',
+    boxShadow: '0 20px 50px rgba(0,0,0,0.35)',
     animation: 'popupFadeIn 0.4s ease-out forwards',
   },
   popupIcon: {
     fontSize: '48px',
-    color: '#34d399',
+    color: '#FFFFFF',
     marginBottom: '1rem',
   },
   popupTitle: {
     fontFamily: "'DM Serif Display', serif",
     fontSize: '24px',
-    color: '#fff',
+    color: '#FFFFFF',
     marginBottom: '10px',
   },
   popupText: {
-    color: 'rgba(147, 197, 253, 0.8)',
+    color: 'rgba(255,255,255,0.75)',
     fontSize: '14px',
     lineHeight: '1.5',
     marginBottom: '20px',
@@ -259,7 +262,7 @@ const styles = {
   popupCountdown: {
     fontSize: '36px',
     fontWeight: 'bold',
-    color: '#60a5fa',
+    color: '#FFFFFF',
     margin: '20px 0',
   },
 };
@@ -273,24 +276,22 @@ const getPasswordStrength = (password) => {
   if (/[^A-Za-z0-9]/.test(password)) score++;
   const map = [
     { label: '', color: '' },
-    { label: 'Weak', color: '#ef4444' },
-    { label: 'Fair', color: '#f59e0b' },
-    { label: 'Good', color: '#3b82f6' },
-    { label: 'Strong', color: '#22c55e' },
+    { label: 'Weak', color: '#F09595' },
+    { label: 'Fair', color: '#FAC775' },
+    { label: 'Good', color: '#FFFFFF' },
+    { label: 'Strong', color: '#FFFFFF' },
   ];
   return { score, ...map[score] };
 };
 
 const Register = () => {
   const navigate = useNavigate();
-  // State variables
   const [formData, setFormData] = useState({ firstName: '', lastName: '', email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [loading, setLoading] = useState(false);
-  
-  // Popup and Countdown state
+
   const [showPopup, setShowPopup] = useState(false);
   const [countdown, setCountdown] = useState(10);
 
@@ -310,8 +311,7 @@ const Register = () => {
         email: formData.email,
         password: formData.password
       });
-      
-      // Show popup on success
+
       setShowPopup(true);
     } catch (error) {
       alert("Registration failed. Please check your data.");
@@ -320,7 +320,6 @@ const Register = () => {
     }
   };
 
-  // Handle Countdown Logic
   useEffect(() => {
     let timer;
     if (showPopup && countdown > 0) {
@@ -335,15 +334,11 @@ const Register = () => {
 
   const inputStyle = (field) => ({
     ...styles.input,
-    borderColor: focusedField === field
-      ? 'rgba(96,165,250,0.55)'
-      : 'rgba(147,197,253,0.18)',
-    background: focusedField === field
-      ? 'rgba(59,130,246,0.06)'
-      : 'rgba(255,255,255,0.04)',
+    borderColor: focusedField === field ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.2)',
+    background: focusedField === field ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.08)',
+    boxShadow: focusedField === field ? '0 0 0 3px rgba(255,255,255,0.12)' : 'none',
   });
 
-  // BUG FIXED: Changed formData.name to formData.firstName && formData.lastName
   const isValid = formData.firstName && formData.lastName && formData.email && formData.password.length >= 6 && agreed;
 
   return (
@@ -357,21 +352,20 @@ const Register = () => {
         href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
       />
 
-      {/* Success Popup Notification */}
       {showPopup && (
         <div style={styles.popupOverlay}>
           <div style={styles.popupBox}>
             <i className="ti ti-circle-check-filled" style={styles.popupIcon}></i>
-            <h2 style={styles.popupTitle}>Registration Successful!</h2>
+            <h2 style={styles.popupTitle}>Registration successful</h2>
             <p style={styles.popupText}>
-              Welcome to JobMart, {formData.firstName}. Your account has been created successfully. You will be redirected to the login page shortly.
+              Welcome to JobMart, {formData.firstName}. Your account has been created. You'll be redirected to the login page shortly.
             </p>
             <div style={styles.popupCountdown}>{countdown}</div>
-            <button 
+            <button
               onClick={() => navigate('/login')}
-              style={{...styles.btn, marginTop: '20px', background: 'transparent', border: '1px solid #60a5fa'}}
+              style={{ ...styles.btn, marginTop: '20px', background: 'transparent', border: '1px solid rgba(255,255,255,0.6)', color: '#FFFFFF', boxShadow: 'none' }}
             >
-              Login Now
+              Login now
             </button>
           </div>
         </div>
@@ -382,20 +376,20 @@ const Register = () => {
         <div style={styles.glowBottom} />
 
         <div style={styles.card}>
-          <h1 style={styles.title}>Create Account</h1>
+          <h1 style={styles.title}>Create account</h1>
           <p style={styles.subtitle}>Join 50,000+ professionals finding their dream job.</p>
 
           <div style={styles.badgeRow}>
             <span style={styles.badge}>
-              <i className="ti ti-shield-check" style={{ color: '#60a5fa', fontSize: '12px' }} />
+              <i className="ti ti-shield-check" style={{ color: '#FFFFFF', fontSize: '12px' }} />
               Secure
             </span>
             <span style={styles.badge}>
-              <i className="ti ti-bolt" style={{ color: '#60a5fa', fontSize: '12px' }} />
+              <i className="ti ti-bolt" style={{ color: '#FFFFFF', fontSize: '12px' }} />
               Free to join
             </span>
             <span style={styles.badge}>
-              <i className="ti ti-briefcase" style={{ color: '#60a5fa', fontSize: '12px' }} />
+              <i className="ti ti-briefcase" style={{ color: '#FFFFFF', fontSize: '12px' }} />
               10K+ jobs
             </span>
           </div>
@@ -403,7 +397,7 @@ const Register = () => {
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'flex', gap: '10px' }}>
               <div style={{ ...styles.fieldGroup, flex: 1 }}>
-                <label style={styles.label}>First Name</label>
+                <label style={styles.label}>First name</label>
                 <div style={styles.inputWrap}>
                   <i className="ti ti-user" style={styles.inputIcon} />
                   <input
@@ -421,7 +415,7 @@ const Register = () => {
               </div>
 
               <div style={{ ...styles.fieldGroup, flex: 1 }}>
-                <label style={styles.label}>Last Name</label>
+                <label style={styles.label}>Last name</label>
                 <div style={styles.inputWrap}>
                   <i className="ti ti-user" style={styles.inputIcon} />
                   <input
@@ -440,7 +434,7 @@ const Register = () => {
             </div>
 
             <div style={styles.fieldGroup}>
-              <label style={styles.label}>Email Address</label>
+              <label style={styles.label}>Email address</label>
               <div style={styles.inputWrap}>
                 <i className="ti ti-mail" style={styles.inputIcon} />
                 <input
@@ -491,7 +485,7 @@ const Register = () => {
                       />
                     ))}
                   </div>
-                  <p style={{ ...styles.strengthLabel, color: strength.color || 'rgba(147,197,253,0.5)' }}>
+                  <p style={{ ...styles.strengthLabel, color: strength.color || 'rgba(255,255,255,0.65)' }}>
                     {strength.label && `${strength.label} password`}
                   </p>
                 </>
@@ -521,7 +515,7 @@ const Register = () => {
                 ...styles.btn,
                 ...(!isValid || loading ? styles.btnDisabled : {}),
               }}
-              onMouseEnter={(e) => { if (isValid && !loading) e.currentTarget.style.opacity = '0.88'; }}
+              onMouseEnter={(e) => { if (isValid && !loading) e.currentTarget.style.opacity = '0.9'; }}
               onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
             >
               {loading ? (
@@ -532,7 +526,7 @@ const Register = () => {
               ) : (
                 <>
                   <i className="ti ti-user-plus" style={{ fontSize: '16px' }} />
-                  Register as Candidate
+                  Register as candidate
                 </>
               )}
             </button>
@@ -552,7 +546,7 @@ const Register = () => {
         <style>{`
           @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
           @keyframes popupFadeIn { from { opacity: 0; transform: translateY(20px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-          input::placeholder { color: rgba(147,197,253,0.28); }
+          input::placeholder { color: rgba(255,255,255,0.4); }
         `}</style>
       </div>
     </>
