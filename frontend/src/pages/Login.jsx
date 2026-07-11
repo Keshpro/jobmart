@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode'; // 1. JWT Decode  Import
+import { jwtDecode } from 'jwt-decode'; 
 
 const styles = {
   page: {
     minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
+    justify: 'center',
     background: 'linear-gradient(135deg, #1F3B2C 0%, #2E5A3F 45%, #4A7C59 100%)',
     padding: '2rem',
     position: 'relative',
@@ -152,7 +152,7 @@ const styles = {
     boxShadow: '0 4px 18px rgba(0,0,0,0.2)',
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'center',
+    justify: 'center',
     gap: '7px',
     transition: 'opacity 0.18s, transform 0.12s',
   },
@@ -206,18 +206,18 @@ const Login = () => {
 
       if (response.data.token) {
         const token = response.data.token;
-
-        // Backend එකෙන් කෙලින්ම එවන Role එක ගන්නවා (හෝ Decode කරලා ගන්නවා)
         const userRole = response.data.role;
 
+        // 💡 CRITICAL SYNC FIX: Dashboard එකට අවශ්‍ය 'email' පැරාමීටර් එක මෙතනින් ගබඩා කරයි
         localStorage.setItem('token', token);
+        localStorage.setItem('email', response.data.email || formData.email); 
         localStorage.setItem('firstName', response.data.firstName || '');
         localStorage.setItem('lastName', response.data.lastName || '');
         localStorage.setItem('role', userRole);
 
         alert(`Welcome back! Logged in as ${userRole}`);
 
-        // Role එක අනුව නිවැරදි Dashboard එකට යොමු කිරීම
+        // Role-Based Navigation Routing Table
         switch (userRole) {
           case 'Admin':
             navigate('/admin-dashboard');
@@ -233,7 +233,7 @@ const Login = () => {
             navigate('/dashboard');
             break;
           default:
-            alert("Unauthorized Role Type!");
+            alert("Unauthorized Role Type Framework!");
             navigate('/login');
             break;
         }
