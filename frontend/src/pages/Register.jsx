@@ -370,33 +370,3 @@ const Register = () => {
 };
 
 export default Register;
-
-/* -----------------------------------------------------------------------
-   Changes from the original, and why:
-
-   1. Layout switched from a single centered gradient card to the same
-      split panel used on the new Login page — brand story on the left,
-      form on the right — so Login and Register now read as one flow
-      instead of two different products. Includes your Navbar, which
-      the original page didn't render.
-
-   2. Dropped the Tabler Icons webfont CDN (<link> to
-      cdn.jsdelivr.net/npm/@tabler/icons-webfont) in favor of
-      lucide-react, since that's already a dependency the rest of the
-      app uses (Home, Navbar, ChatBot, Login) — one less external
-      request, and icons stay crisp at any size instead of relying on
-      a font glyph.
-
-   3. Replaced alert('Registration failed...') with the same inline
-      error banner + shake used on Login, instead of a blocking native
-      alert.
-
-   4. Password strength meter, terms checkbox, and the success-popup-
-      with-countdown are all kept exactly as you had them — just
-      restyled to the light form-panel palette instead of white-on-
-      glass, since the form now sits on a white panel rather than over
-      the gradient.
-
-   5. All logic — axios calls, formData shape, countdown/redirect
-      effect — is untouched.
------------------------------------------------------------------------ */
