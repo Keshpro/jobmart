@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
 using Backend.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Data
 {
@@ -24,16 +24,17 @@ namespace Backend.Data
             // 1. Relationship: Application -> JobPosting (One-To-Many)
             modelBuilder.Entity<Application>()
                 .HasOne(a => a.JobPosting)
-                .WithMany(j => j.Applications)
+                .WithMany()
                 .HasForeignKey(a => a.JobPostingId)
                 .OnDelete(DeleteBehavior.Restrict); // Prevents cascade cycles
 
             // 2. Relationship: Application -> User/Candidate (One-To-Many)
             modelBuilder.Entity<Application>()
                 .HasOne(a => a.Candidate)
-                .WithMany(u => u.Applications)
+                .WithMany()
                 .HasForeignKey(a => a.CandidateId)
                 .OnDelete(DeleteBehavior.Restrict); // Prevents cascade cycles
+
         }
     }
 }

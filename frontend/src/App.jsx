@@ -1,26 +1,46 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard'; // Candidate Dashboard
-import RecruiterDashboard from './pages/RecruiterDashboard'; // recruiter dashboard
-import AdminDashboard from './pages/AdminDashboard'; // admin dashboard
+import Dashboard from './pages/Dashboard';
+import RecruiterDashboard from './pages/RecruiterDashboard';
+import AdminDashboard from './pages/AdminDashboard';
+
+// Placeholder for Register
+const Register = () => <div className="p-10 text-2xl font-bold text-center">Register Page (Create similar to Login)</div>;
+const Unauthorized = () => <div className="p-10 text-2xl font-bold text-red-600 text-center mt-20">403 - Unauthorized Access</div>;
 
 function App() {
   return (
     <Router>
-      <Navbar /> 
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/" element={<Login />} /> 
-      </Routes>
+      <div className="min-h-screen bg-slate-50 font-sans">
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/unauthorized" element={<Unauthorized />} />
+
+          {/* Protected Routes */}
+          <Route path="/candidate/*" element={
+            <ProtectedRoute allowedRoles={['Candidate']}>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/recruiter/*" element={
+            <ProtectedRoute allowedRoles={['Recruiter', 'HiringManager']}>
+              <RecruiterDashboard />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/admin/*" element={
+            <ProtectedRoute allowedRoles={['Admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+        </Routes>
+      </div>
     </Router>
   );
 }

@@ -140,3 +140,4 @@ D:\KreativeLabs\jobmart\Backend\obj\Debug\net10.0\Backend.csproj.Up2Date
 D:\KreativeLabs\jobmart\Backend\obj\Debug\net10.0\Backend.genruntimeconfig.cache
 D:\KreativeLabs\jobmart\Backend\obj\Debug\net10.0\ref\Backend.dll
 D:\KreativeLabs\jobmart\Backend\bin\Debug\net10.0\BCrypt-Net-Next.dll
+D:\KreativeLabs\jobmart\Backend\bin\Debug\net10.0\Microsoft.Bcl.Cryptography.dll

@@ -1,282 +1,190 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
+import Navbar from '../components/Navbar';
+import { Upload, FileText, BarChart, Loader2 } from 'lucide-react';
 
-const inputCls = "w-full px-3 py-2.5 text-xs border border-[#E2E8F0] bg-[#F8FAFC] rounded-xl outline-none focus:border-[#4A7C59] focus:bg-white transition text-[#0F172A]";
-const cardCls = "bg-white border border-[#E2E8F0] p-5 rounded-2xl shadow-sm space-y-3";
-const labelCls = "block text-[10px] font-bold uppercase tracking-widest text-[#64748B] mb-1.5";
-
-const Icon = {
-  Chart: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>,
-  User: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
-  FileText: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-  Sparkles: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>,
-  Search: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-};
-
-const API_BASE_URL = 'http://localhost:5183/api';
-
-const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const [candidateData, setCandidateData] = useState({
-    id: '', firstName: '', lastName: '', email: '', jobTitle: '', bio: '', isCvUploaded: false
-  });
-
-  const [uploadedFile, setUploadedFile] = useState(null);
+const CandidateDashboard = () => {
+  const userId = localStorage.getItem('userId');
+  const [file, setFile] = useState(null);
   const [uploadStatus, setUploadStatus] = useState('');
+  
+  // AI Tools State
+  const [atsData, setAtsData] = useState(null);
+  const [loadingAts, setLoadingAts] = useState(false);
+  
+  const [targetJob, setTargetJob] = useState('');
+  const [skills, setSkills] = useState('');
+  const [generatedAssets, setGeneratedAssets] = useState(null);
+  const [loadingAssets, setLoadingAssets] = useState(false);
 
-  const [atsAnalytics, setAtsAnalytics] = useState({
-    profileCompletion: 0,
-    atsScore: 0,
-    interviewProbability: '0%',
-    missingKeywords: [],
-    suggestedImprovements: []
-  });
-  const [loadingAts, setLoadingAts] = useState(true);
-
-  const [aiSearchQuery, setAiSearchQuery] = useState('');
-  const [aiSearchLogs, setAiSearchLogs] = useState('');
-  const [searchingNlp, setSearchingNlp] = useState(false);
-
-  const [aiInputs, setAiInputs] = useState({ targetTitle: '', skills: '' });
-  const [aiResult, setAiResult] = useState({ headline: '', coverLetter: '' });
-  const [generatingAi, setGeneratingAi] = useState(false);
-
-  useEffect(() => {
-    const userId = localStorage.getItem('userId') || '1'; 
-    
-    axios.get(`${API_BASE_URL}/Auth/candidates`)
-      .then(res => {
-        const current = res.data.find(u => u.id == userId);
-        if (current) {
-          setCandidateData({
-            id: current.id, firstName: current.firstName, lastName: current.lastName,
-            email: current.email, jobTitle: current.jobTitle || '', bio: current.bio || '',
-            isCvUploaded: current.isCvUploaded || false
-          });
-          setAiInputs({ targetTitle: current.jobTitle || '', skills: '' });
-          loadLiveAtsAnalytics(current.id);
-        }
-      })
-      .catch(err => console.error(err));
-  }, []);
-
-  const loadLiveAtsAnalytics = (id) => {
-    setLoadingAts(true);
-    axios.get(`${API_BASE_URL}/AiIntegration/ats-analytics/${id}`)
-      .then(res => {
-        setAtsAnalytics({
-          profileCompletion: res.data.profileCompletion || 75,
-          atsScore: res.data.atsScore || 70,
-          interviewProbability: res.data.interviewProbability || '50%',
-          missingKeywords: res.data.missingKeywords || [],
-          suggestedImprovements: res.data.suggestedImprovements || []
-        });
-      })
-      .catch(err => console.error(err))
-      .finally(() => setLoadingAts(false));
-  };
-
-  const handleProfileUpdate = async (e) => {
+  // 1. Upload Physical CV
+  const handleFileUpload = async (e) => {
     e.preventDefault();
-    try {
-      await axios.put(`${API_BASE_URL}/Auth/candidates/${candidateData.id}`, candidateData);
-      alert("Profile data configurations persisted successfully.");
-      loadLiveAtsAnalytics(candidateData.id);
-    } catch (err) {
-      alert("Database mutation transaction aborted.");
-    }
-  };
+    if (!file) return;
 
-  const handleResumeBinaryUpload = async (e) => {
-    e.preventDefault();
-    if (!uploadedFile) return alert("Select a valid physical file mapping context.");
-    
     const formData = new FormData();
-    formData.append("file", uploadedFile);
-    setUploadStatus("Synchronizing file directly to server repository...");
+    formData.append('file', file);
 
     try {
-      await axios.post(`${API_BASE_URL}/AiIntegration/upload-resume/${candidateData.id}`, formData, {
+      setUploadStatus('Uploading...');
+      await axios.post(`http://localhost:5183/api/AiIntegration/upload-resume/${userId}`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      setUploadStatus("CV synchronized successfully!");
-      setCandidateData(prev => ({ ...prev, isCvUploaded: true }));
-      loadLiveAtsAnalytics(candidateData.id);
-    } catch (err) {
-      setUploadStatus("Upload pipeline execution fault context.");
+      setUploadStatus('CV Uploaded Successfully!');
+    } catch (error) {
+      setUploadStatus('Failed to upload CV.');
     }
   };
 
-  const triggerAiAssetGeneration = async (e) => {
-    e.preventDefault();
-    if (!aiInputs.targetTitle || !aiInputs.skills) return alert("Define primary skill tokens and job vectors.");
-    
-    setGeneratingAi(true);
+  // 2. Fetch AI ATS Score
+  const generateAtsScore = async () => {
+    setLoadingAts(true);
     try {
-      const skillsArray = aiInputs.skills.split(',').map(s => s.trim());
-      const response = await axios.post(`${API_BASE_URL}/AiIntegration/generate-candidate-assets`, {
-        targetJobTitle: aiInputs.targetTitle,
-        selectedSkills: skillsArray
-      });
-      setAiResult({
-        headline: response.data.suggestedResumeHeadline,
-        coverLetter: response.data.coverLetter
-      });
-    } catch (err) {
-      alert("AI Coprocessor network execution timeout.");
+      const response = await axios.get(`http://localhost:5183/api/AiIntegration/ats-analytics/${userId}`);
+      setAtsData(response.data);
+    } catch (error) {
+      alert('Ensure your profile is complete before generating an ATS score.');
     } finally {
-      setGeneratingAi(false);
+      setLoadingAts(false);
     }
   };
 
-  const triggerSmartSearch = async (e) => {
+  // 3. Generate AI Career Assets (Cover Letter)
+  const generateAssets = async (e) => {
     e.preventDefault();
-    if(!aiSearchQuery) return;
-    
-    setSearchingNlp(true);
-    setAiSearchLogs("Initializing NLP parsing sequences...");
+    setLoadingAssets(true);
     try {
-      const response = await axios.post(`${API_BASE_URL}/AiIntegration/nlp-search`, { query: aiSearchQuery });
-      setAiSearchLogs(response.data.logs);
-    } catch (err) {
-      setAiSearchLogs("Linguistic framework pipeline error.");
+      const skillArray = skills.split(',').map(s => s.trim());
+      const response = await axios.post(`http://localhost:5183/api/AiIntegration/generate-candidate-assets`, {
+        targetJobTitle: targetJob,
+        selectedSkills: skillArray
+      });
+      setGeneratedAssets(response.data);
+    } catch (error) {
+      alert('Failed to generate assets.');
     } finally {
-      setSearchingNlp(false);
+      setLoadingAssets(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-[#0F172A] antialiased">
-      <div className="max-w-screen-xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-4 gap-8">
+    <div className="min-h-screen bg-slate-50">
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        <div className="md:col-span-1 bg-white border border-[#E2E8F0] rounded-2xl p-4 space-y-1 h-fit shadow-sm">
-          <div className="p-2 mb-4 border-b border-gray-100 pb-4">
-            <h3 className="text-xs font-black uppercase text-[#4A7C59] tracking-wider">JobMart Platform</h3>
-            <p className="text-[10px] text-gray-400 mt-0.5">Candidate Center</p>
+        {/* Left Column: Actions */}
+        <div className="md:col-span-1 space-y-6">
+          
+          {/* CV Upload Card */}
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-brand-green">
+            <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800">
+              <Upload className="text-brand-green" /> Upload Physical CV
+            </h3>
+            <form onSubmit={handleFileUpload} className="space-y-4">
+              <input 
+                type="file" 
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setFile(e.target.files[0])}
+                className="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-brand-light file:text-brand-dark hover:file:bg-brand-green hover:file:text-white transition-all cursor-pointer"
+              />
+              <button type="submit" className="w-full bg-slate-800 text-white py-2 rounded font-medium hover:bg-slate-900">
+                Sync Resume
+              </button>
+            </form>
+            {uploadStatus && <p className="mt-3 text-sm font-semibold text-brand-green">{uploadStatus}</p>}
           </div>
-          <button onClick={() => setActiveTab('overview')} className={`w-full flex items-center gap-2.5 px-4 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'overview' ? 'bg-[#4A7C59]/10 text-[#4A7C59]' : 'text-gray-500 hover:bg-gray-50'}`}><Icon.Chart /> Dashboard Overview</button>
-          <button onClick={() => setActiveTab('profile')} className={`w-full flex items-center gap-2.5 px-4 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'profile' ? 'bg-[#4A7C59]/10 text-[#4A7C59]' : 'text-gray-500 hover:bg-gray-50'}`}><Icon.User /> Profile Parameters</button>
-          <button onClick={() => setActiveTab('cv_repo')} className={`w-full flex items-center gap-2.5 px-4 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'cv_repo' ? 'bg-[#4A7C59]/10 text-[#4A7C59]' : 'text-gray-500 hover:bg-gray-50'}`}><Icon.FileText /> ATS & CV Repository</button>
-          <button onClick={() => setActiveTab('ai_optimizer')} className={`w-full flex items-center gap-2.5 px-4 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'ai_optimizer' ? 'bg-[#4A7C59]/10 text-[#4A7C59]' : 'text-gray-500 hover:bg-gray-50'}`}><Icon.Sparkles /> AI Career Optimizer</button>
-          <button onClick={() => setActiveTab('smart_search')} className={`w-full flex items-center gap-2.5 px-4 py-3 text-xs font-bold rounded-xl transition ${activeTab === 'smart_search' ? 'bg-[#4A7C59]/10 text-[#4A7C59]' : 'text-gray-500 hover:bg-gray-50'}`}><Icon.Search /> Smart NLP Job Search</button>
+
+          {/* ATS Generator Trigger */}
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
+            <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800">
+              <BarChart className="text-blue-500" /> ATS Analytics
+            </h3>
+            <p className="text-sm text-slate-600 mb-4">Run an AI scan on your profile to see how you rank against enterprise standards.</p>
+            <button 
+              onClick={generateAtsScore} 
+              disabled={loadingAts}
+              className="w-full bg-blue-600 text-white py-2 rounded font-medium hover:bg-blue-700 flex justify-center items-center"
+            >
+              {loadingAts ? <Loader2 className="animate-spin" /> : 'Generate ATS Score'}
+            </button>
+          </div>
         </div>
 
-        <div className="md:col-span-3 space-y-6">
-          <div className="bg-white border border-[#E2E8F0] p-6 rounded-2xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-xl font-black text-[#0F172A] tracking-tight">Welcome Back, {candidateData.firstName || 'Candidate'} 👋</h1>
-              <p className="text-xs text-gray-500 mt-0.5">Manage live profile parameters and trace automated cognitive scores.</p>
-            </div>
-          </div>
-
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              {loadingAts ? (
-                <div className="text-xs font-bold text-[#4A7C59] p-8 bg-white rounded-2xl border text-center animate-pulse">Running Neural Analytics Core...</div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className={cardCls}><span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Profile Completion</span><h3 className="text-2xl font-black font-mono text-[#4A7C59]">{atsAnalytics.profileCompletion}%</h3></div>
-                    <div className={cardCls}><span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Live AI ATS Score</span><h3 className="text-2xl font-black font-mono text-indigo-600">{atsAnalytics.atsScore}%</h3></div>
-                    <div className={cardCls}><span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Interview Probability</span><h3 className="text-2xl font-black font-mono text-purple-600">{atsAnalytics.interviewProbability}</h3></div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl space-y-3">
-                      <h4 className="text-xs font-black uppercase text-amber-700">⚠️ Extracted Target Skill Gaps</h4>
-                      <div className="flex flex-wrap gap-2 pt-1">
-                        {atsAnalytics.missingKeywords.length === 0 ? <p className="text-[11px] text-gray-400 italic">No keyword discrepancies flagged.</p> : 
-                          atsAnalytics.missingKeywords.map((kw, i) => <span key={i} className="px-2 py-0.5 font-mono text-[10px] bg-amber-50 text-amber-800 border border-amber-100 rounded-md">{kw}</span>)
-                        }
-                      </div>
-                    </div>
-                    <div className="bg-white border border-[#E2E8F0] p-5 rounded-2xl space-y-3">
-                      <h4 className="text-xs font-black uppercase text-indigo-700">💡 Optimization Suggestions</h4>
-                      <ul className="space-y-1.5 pt-1 text-xs text-slate-600">
-                        {atsAnalytics.suggestedImprovements.length === 0 ? <p className="text-[11px] text-gray-400 italic">Profile parameters fully optimized context.</p> :
-                          atsAnalytics.suggestedImprovements.map((imp, i) => <li key={i}>• {imp}</li>)
-                        }
-                      </ul>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'profile' && (
-            <div className="bg-white border border-[#E2E8F0] p-6 rounded-2xl shadow-sm space-y-6">
-              <form onSubmit={handleProfileUpdate} className="space-y-4 max-w-xl">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div><label className={labelCls}>First Name</label><input className={inputCls} value={candidateData.firstName} onChange={e => setCandidateData({...candidateData, firstName: e.target.value})} /></div>
-                  <div><label className={labelCls}>Last Name</label><input className={inputCls} value={candidateData.lastName} onChange={e => setCandidateData({...candidateData, lastName: e.target.value})} /></div>
+        {/* Right Column: AI Results & Assets */}
+        <div className="md:col-span-2 space-y-6">
+          
+          {/* ATS Results View */}
+          {atsData && (
+            <div className="bg-white p-6 rounded-xl shadow-md animate-fade-in border-l-4 border-blue-500">
+              <h3 className="text-2xl font-bold text-slate-800 mb-4">AI Profile Analysis</h3>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                  <p className="text-sm text-slate-500 font-bold uppercase">ATS Score</p>
+                  <p className="text-4xl font-extrabold text-brand-green">{atsData.atsScore}%</p>
                 </div>
-                <div><label className={labelCls}>Target Professional Title</label><input className={inputCls} value={candidateData.jobTitle} onChange={e => setCandidateData({...candidateData, jobTitle: e.target.value})} /></div>
-                <div><label className={labelCls}>Biography Context</label><textarea rows={4} className="w-full px-3 py-2 text-xs border border-[#E2E8F0] bg-[#F8FAFC] rounded-xl outline-none focus:border-[#4A7C59] resize-none" value={candidateData.bio} onChange={e => setCandidateData({...candidateData, bio: e.target.value})} /></div>
-                <button type="submit" className="px-5 py-2.5 text-xs font-bold text-white bg-[#4A7C59] rounded-xl shadow-md transition">Update Core Profile</button>
-              </form>
-            </div>
-          )}
-
-          {activeTab === 'cv_repo' && (
-            <div className="bg-white border border-[#E2E8F0] p-6 rounded-2xl shadow-sm space-y-6">
-              <div className="p-5 rounded-xl border bg-gray-50/50 border-gray-100 space-y-4">
-                <label className={labelCls}>{candidateData.isCvUploaded ? "Replace Active Document File" : "Upload Resume Parameters"}</label>
-                <form onSubmit={handleResumeBinaryUpload} className="flex flex-col sm:flex-row gap-3 sm:items-center">
-                  <input type="file" accept=".pdf,.docx" onChange={e => setUploadedFile(e.target.files[0])} className="text-xs file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:bg-slate-900 file:text-white file:text-[10px] file:font-bold cursor-pointer" />
-                  <button type="submit" className="px-4 py-2 text-xs font-bold text-white bg-[#0F172A] rounded-xl hover:bg-[#4A7C59] transition">Execute Upload</button>
-                </form>
-                {uploadStatus && <p className="text-[10px] font-mono text-indigo-600 mt-1">{uploadStatus}</p>}
+                <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 text-center">
+                  <p className="text-sm text-slate-500 font-bold uppercase">Interview Probability</p>
+                  <p className="text-4xl font-extrabold text-blue-600">{atsData.interviewProbability}</p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="font-bold text-slate-700">Missing Keywords:</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {atsData.missingKeywords?.map((kw, i) => (
+                    <span key={i} className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold">{kw}</span>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
-          {activeTab === 'ai_optimizer' && (
-            <div className="bg-white border border-[#E2E8F0] p-6 rounded-2xl shadow-sm space-y-6">
-              <form onSubmit={triggerAiAssetGeneration} className="space-y-4 bg-gray-50/50 p-4 border border-gray-100 rounded-xl">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div><label className={labelCls}>Target Career Title</label><input className={inputCls} value={aiInputs.targetTitle} onChange={e => setAiInputs({...aiInputs, targetTitle: e.target.value})} /></div>
-                  <div><label className={labelCls}>Core Matrix Competencies</label><input className={inputCls} placeholder="e.g. Java, React" value={aiInputs.skills} onChange={e => setAiInputs({...aiInputs, skills: e.target.value})} /></div>
-                </div>
-                <button type="submit" className="px-4 py-2 bg-[#4A7C59] font-bold text-white text-xs rounded-xl shadow-sm hover:bg-[#3d664a]">
-                  {generatingAi ? "Processing Tokens..." : "Synthesize Assets"}
-                </button>
-              </form>
+          {/* AI Cover Letter Generator */}
+          <div className="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-500">
+            <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800">
+              <FileText className="text-purple-500" /> AI Career Assets Generator
+            </h3>
+            <form onSubmit={generateAssets} className="space-y-4 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input 
+                  type="text" 
+                  placeholder="Target Job Title (e.g. Software Engineer)" 
+                  required
+                  value={targetJob}
+                  onChange={(e) => setTargetJob(e.target.value)}
+                  className="border border-slate-300 rounded px-3 py-2 w-full focus:outline-none focus:border-brand-green"
+                />
+                <input 
+                  type="text" 
+                  placeholder="Skills (comma separated)" 
+                  required
+                  value={skills}
+                  onChange={(e) => setSkills(e.target.value)}
+                  className="border border-slate-300 rounded px-3 py-2 w-full focus:outline-none focus:border-brand-green"
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={loadingAssets}
+                className="w-full bg-purple-600 text-white py-2 rounded font-medium hover:bg-purple-700 flex justify-center items-center"
+              >
+                {loadingAssets ? <Loader2 className="animate-spin" /> : 'Generate Cover Letter & Headline'}
+              </button>
+            </form>
 
-              {aiResult.headline && (
-                <div className="space-y-4 animate-fade-in">
-                  <div className={cardCls}><span className="text-[9px] font-mono font-black text-indigo-600 uppercase tracking-widest block">[SUGGESTED HeadLINE]</span><p className="text-xs text-slate-800 font-bold border-l-2 border-[#4A7C59] pl-3 py-1 bg-gray-50/50 rounded-r-lg">{aiResult.headline}</p></div>
-                  <div className={cardCls}><span className="text-[9px] font-mono font-black text-indigo-600 uppercase tracking-widest block">[SYNTHESIZED COVER LETTER]</span><p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-gray-50 p-4 rounded-xl border font-serif">{aiResult.coverLetter}</p></div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'smart_search' && (
-            <div className="bg-white border border-[#E2E8F0] p-6 rounded-2xl shadow-sm space-y-6">
-              <form onSubmit={triggerSmartSearch} className="space-y-3">
-                <label className={labelCls}>Linguistic Search Query String</label>
-                <div className="flex gap-2">
-                  <input type="text" className={inputCls} placeholder="e.g. I need a remote React developer job under Rs. 250,000..." value={aiSearchQuery} onChange={e => setAiSearchQuery(e.target.value)} />
-                  <button type="submit" className="px-4 py-2 bg-slate-950 text-white font-bold text-xs rounded-xl hover:bg-[#4A7C59] transition">
-                    {searchingNlp ? "Compiling..." : "Compile Query"}
-                  </button>
-                </div>
-              </form>
-
-              {aiSearchLogs && (
-                <div className="p-4 bg-slate-900 text-slate-200 font-mono text-[10px] rounded-xl border border-slate-950 leading-relaxed whitespace-pre-line">
-                  <span className="text-emerald-400 font-bold block mb-1">[NLP PARSER COMPILER SEQUENCE SUCCESSFUL]</span>
-                  {aiSearchLogs}
-                </div>
-              )}
-            </div>
-          )}
-
+            {generatedAssets && (
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 mt-4">
+                <h4 className="font-bold text-lg text-slate-800 mb-2">Punchy Headline</h4>
+                <p className="italic text-slate-600 mb-4">"{generatedAssets.suggestedResumeHeadline}"</p>
+                <h4 className="font-bold text-lg text-slate-800 mb-2">Executive Cover Letter</h4>
+                <p className="text-slate-700 whitespace-pre-line text-sm leading-relaxed">{generatedAssets.coverLetter}</p>
+              </div>
+            )}
+          </div>
+          
         </div>
       </div>
     </div>
   );
 };
 
-export default Dashboard;
+export default CandidateDashboard;

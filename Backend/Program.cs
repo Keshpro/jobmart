@@ -14,7 +14,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
 // 2. Real JWT Authentication Architecture Setup 
-// appsettings.json එකෙන් Key එක කියවයි, නැතහොත් strong fallback signature එකක් භාවිතා කරයි
+// Read JWT Key from appsettings.json, or use a strong fallback signature
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "JobMart_Enterprise_Secure_Dynamic_JWT_Secret_Key_2026_Token_Validation";
 var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
 
@@ -25,20 +25,23 @@ builder.Services.AddAuthentication(options =>
 })
 .AddJwtBearer(options =>
 {
-    options.RequireHttpsMetadata = false; // Development නිසාවෙන් HTTPS චෙක් කිරීම අක්‍රීයයි
+    options.RequireHttpsMetadata = false; // Disable HTTPS requirement for Development environment
     options.SaveToken = true;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
-        ValidateIssuer = false, // Localhost නිසා Domain Issuer check කිරීම මඟහරියි
+        ValidateIssuer = false, // Skip Issuer validation for Localhost testing
         ValidateAudience = false,
-        ClockSkew = TimeSpan.Zero // Token එක Expire වූ සැනින් ක්ෂණිකව අවලංගු වීමට
+        ClockSkew = TimeSpan.Zero // Invalidate token immediately upon expiration
     };
 });
 
 // Authorization layer activation
 builder.Services.AddAuthorization();
+
+// Register HttpClient for AI Integration (Required for Gemini API calls)
+builder.Services.AddHttpClient();
 
 // 3. CORS Setup (Authorized React Frontend Port 5173)
 builder.Services.AddCors(options =>
@@ -114,7 +117,7 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        // Pending Migrations පවතී නම් ස්වයංක්‍රීයව Database එකට Apply කරයි
+        // Apply pending database migrations automatically
         if (context.Database.GetPendingMigrations().Any())
         {
             context.Database.Migrate();

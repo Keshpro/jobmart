@@ -6,24 +6,22 @@ namespace Backend.Models
     {
         [Key]
         public int Id { get; set; }
+        public required string Title { get; set; }
+        public required string Company { get; set; }
+        public required string Description { get; set; }
+        public required string RequiredSkills { get; set; }
+        
+        // Missing properties required by your controller
+        public string? Location { get; set; }
+        public string? Type { get; set; }
+        public string? Status { get; set; }
 
-        [Required]
-        public string Title { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
+        public int CreatedByUserId { get; set; }
+        public User? CreatedByUser { get; set; }
 
-        [Required]
-        public string Company { get; set; } = string.Empty; // Fixed explicit primitive string definition
-
-        [Required]
-        public string Location { get; set; } = string.Empty;
-
-        [Required]
-        public string Type { get; set; } = string.Empty; // Full-time, Part-time, etc.
-
-        [Required]
-        public string Status { get; set; } = string.Empty; // Active, Paused, Closed
-
-        // Relationship property navigation matching your DbContext configuration
-        public ICollection<Application> Applications { get; set; } = new List<Application>();
-        public string Description { get; set; } = string.Empty; // string
+        // Navigation property for database relationships
+        public ICollection<Application>? Applications { get; set; }
     }
 }
