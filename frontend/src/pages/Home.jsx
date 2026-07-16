@@ -1,153 +1,146 @@
-import React from 'react';
-import Footer from '../components/Footer'; 
+import React, { useState } from 'react';
+import axios from 'axios';
 
-// ─── HCI Compliant Minimal Vector Icons (Optimized for Light Mode) ───────────
-const Icon = {
-  Sparkles: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L18 12l-6.857 2.286L9 21l-2.286-6.857L0 12l6.857-2.286L9 3z" /></svg>,
-  CheckVerified: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>,
-  TrendingUp: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
-  ArrowRight: () => <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-};
+const API_BASE_URL = 'http://localhost:5183/api';
 
 const Home = () => {
+  const [isBotOpen, setIsBotOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { sender: 'bot', text: 'Hello! I am your AI Career Coach. How can I guide your professional journey today?' }
+  ]);
+  const [userInput, setUserInput] = useState('');
+  const [loadingBot, setLoadingBot] = useState(false);
+
+  const sendMessageToAi = async (e) => {
+    e.preventDefault();
+    if (!userInput.trim()) return;
+
+    const userMsg = { sender: 'user', text: userInput };
+    setMessages(prev => [...prev, userMsg]);
+    setUserInput('');
+    setLoadingBot(true);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/AiIntegration/career-coach`, { message: userMsg.text });
+      setMessages(prev => [...prev, { sender: 'bot', text: response.data.response }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { sender: 'bot', text: 'Cognitive synchronization timeout. Try again.' }]);
+    } finally {
+      setLoadingBot(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-white font-sans text-[#0F172A] antialiased">
+    <div className="min-h-screen bg-[#F8FAFC] font-sans text-[#0F172A] antialiased flex flex-col justify-between">
       
-      {/* ─── 1. HERO HEADER SECTION (Minimalist Crisp White Layout) ─── */}
-      <section className="relative max-w-screen-xl mx-auto px-6 pt-24 pb-16 text-center space-y-6">
-        {/* Dynamic Micro-interaction Notification Badge */}
-        <div className="inline-flex items-center gap-2 bg-[#4A7C59]/10 border border-[#4A7C59]/20 text-[#4A7C59] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider">
-          <Icon.Sparkles /> Next-Gen AI Recruitment Ecosystem Active
+      <div className="max-w-screen-xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center flex-grow">
+        <div className="space-y-6">
+          <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest text-[#4A7C59] bg-[#4A7C59]/10 rounded-full border border-[#4A7C59]/20">
+            Next-Gen AI Recruitment Ecosystem
+          </span>
+          <h1 className="text-4xl lg:text-5xl font-black tracking-tight leading-tight">
+            Connecting Talent with <span className="text-[#4A7C59]">Cognitive Match-Making</span> Technology.
+          </h1>
+          <p className="text-sm text-gray-500 leading-relaxed max-w-lg">
+            JobMart utilizes real-time semantic analysis to filter candidates, calculate compatibility metrics, and prepare high-performing corporate pipelines automatically.
+          </p>
+          <div className="pt-4 flex gap-4">
+            <a href="/login" className="px-6 py-3 text-xs font-bold text-white bg-[#4A7C59] hover:bg-[#3d664a] rounded-xl shadow-md transition">
+              Get Started Now
+            </a>
+            <button onClick={() => setIsBotOpen(true)} className="px-6 py-3 text-xs font-bold text-[#4A7C59] bg-white border border-[#E2E8F0] hover:bg-gray-50 rounded-xl shadow-xs transition">
+              Consult AI Coach
+            </button>
+          </div>
         </div>
+
+        <div className="relative flex justify-center">
+          <div className="w-80 h-96 bg-white border border-[#E2E8F0] rounded-3xl shadow-lg p-6 space-y-6 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+              <span className="text-[10px] font-mono font-black uppercase text-slate-400">Telemetry Engine Live</span>
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-100 rounded-md w-3/4"></div>
+              <div className="h-4 bg-gray-100 rounded-md w-1/2"></div>
+            </div>
+            <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-2">
+              <span className="text-[9px] font-mono font-bold text-indigo-600 block">[Gemini Parsing Success]</span>
+              <p className="text-[11px] text-slate-600 leading-relaxed">System parsed candidate credentials successfully with 95% vacancy alignment.</p>
+            </div>
+          </div>
+          <div className="absolute top-8 left-8 w-80 h-96 bg-[#4A7C59]/10 rounded-3xl border border-[#4A7C59]/20 -rotate-6"></div>
+        </div>
+      </div>
+
+      {/* ─── 🤖 FLOATING CHATBOT WIDGET ─── */}
+      <div className="fixed bottom-6 right-6 z-50">
         
-        <h1 className="text-4xl md:text-6xl font-black tracking-tight text-[#0F172A] max-w-4xl mx-auto leading-tight">
-          Modernizing The Global Talent Lifecycle <span className="text-[#4A7C59]">Through AI Insights</span>
-        </h1>
-        
-        <p className="text-sm md:text-base text-[#57657A] max-w-2xl mx-auto leading-relaxed">
-          Automate candidate tracking, build custom generative compliance documents, and experience programmatic multi-role talent matching matrixes inside one core architecture.
-        </p>
-
-        {/* High Affordance Primary Action Areas */}
-        <div className="flex justify-center gap-3 pt-4">
-          <button className="px-6 py-3 bg-[#4A7C59] hover:bg-[#3D664A] text-white rounded-xl text-xs font-bold shadow-lg shadow-[#4A7C59]/10 transition-all duration-200 flex items-center gap-2">
-            Explore Open Vacancies <Icon.ArrowRight />
+        {!isBotOpen && (
+          <button 
+            onClick={() => setIsBotOpen(true)}
+            className="w-14 h-14 bg-[#4A7C59] hover:bg-[#3d664a] text-white rounded-full flex items-center justify-center shadow-xl transition transform hover:scale-105"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
           </button>
-          <button className="px-6 py-3 bg-[#F8FAFC] border border-[#E2E8F0] text-[#57657A] hover:text-[#0F172A] rounded-xl text-xs font-bold hover:bg-[#F1F5F9] transition-all duration-200">
-            Enterprise Solutions
-          </button>
-        </div>
-      </section>
+        )}
 
-      {/* ─── 2. PERFORMANCE COUNTERS STRIP (Crisp High-Contrast Grid) ─── */}
-      <section className="max-w-screen-xl mx-auto px-6 mb-16">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-[#F8FAFC] border border-[#E2E8F0] p-6 rounded-2xl shadow-sm divide-y-2 md:divide-y-0 md:divide-x divide-[#E2E8F0]">
-          <div className="text-center p-2 md:p-0">
-            <h3 className="text-3xl font-black font-mono text-[#0F172A]">94K+</h3>
-            <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mt-1">Processed Resumes</p>
-          </div>
-          <div className="text-center p-2 md:p-0">
-            <h3 className="text-3xl font-black font-mono text-[#4A7C59]">1.2M</h3>
-            <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mt-1">AI Match Matrix Calls</p>
-          </div>
-          <div className="text-center p-2 md:p-0">
-            <h3 className="text-3xl font-black font-mono text-[#0F172A]">99.8%</h3>
-            <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mt-1">SLA Pipeline Uptime</p>
-          </div>
-          <div className="text-center p-2 md:p-0">
-            <h3 className="text-3xl font-black font-mono text-[#4A7C59]">450+</h3>
-            <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mt-1">Multinational Corporates</p>
-          </div>
-        </div>
-      </section>
+        {isBotOpen && (
+          <div className="w-80 sm:w-96 h-[450px] bg-white border border-[#E2E8F0] rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden animate-fade-in">
+            
+            <div className="bg-[#4A7C59] p-4 text-white flex justify-between items-center">
+              <div>
+                <h4 className="text-xs font-black uppercase tracking-wider">JobMart AI Assistant</h4>
+                <p className="text-[9px] text-emerald-100 mt-0.5">Automated HR Career Advisor</p>
+              </div>
+              <button onClick={() => setIsBotOpen(false)} className="text-white hover:text-gray-200">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
 
-      {/* ─── 3. INTEGRATION MATRICES FEATURE CARDS (HCI Chunking Layout) ─── */}
-      <section className="max-w-screen-xl mx-auto px-6 mb-16 space-y-6">
-        <div>
-          <h2 className="text-xl font-black text-[#0F172A]">Premium Cognitive Integration Matrix</h2>
-          <p className="text-xs text-[#64748B] mt-0.5">Explore native features engineered to optimize systemic corporate talent pipelines.</p>
-        </div>
+            <div className="flex-grow p-4 overflow-y-auto space-y-3 bg-[#F8FAFC]">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[75%] p-3 rounded-2xl text-xs leading-relaxed ${
+                    m.sender === 'user' 
+                      ? 'bg-[#4A7C59] text-white rounded-br-none' 
+                      : 'bg-white border border-gray-200 text-slate-700 rounded-bl-none shadow-2xs'
+                  }`}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {loadingBot && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-gray-200 p-3 rounded-2xl rounded-bl-none shadow-2xs text-[10px] text-gray-400 font-bold flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-[#4A7C59] rounded-full animate-bounce"></div>
+                    Coach is compiling response...
+                  </div>
+                </div>
+              )}
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Ad Card 1: AI Auto-Matching Engine */}
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-6 rounded-2xl flex flex-col justify-between space-y-6 shadow-sm hover:border-[#4A7C59]/50 transition-all duration-300 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 p-3 opacity-5 text-[#0F172A]"><Icon.Sparkles /></div>
-            <div className="space-y-2">
-              <span className="text-[9px] bg-[#4A7C59]/10 text-[#4A7C59] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest border border-[#4A7C59]/20">Core Service</span>
-              <h3 className="text-base font-bold tracking-tight text-[#0F172A] group-hover:text-[#4A7C59] transition-colors">AI Matching Optimization</h3>
-              <p className="text-xs text-[#57657A] leading-relaxed">Map systemic corporate job vacancy matrices directly onto user profile structures using automated context telemetry.</p>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t border-[#E2E8F0]">
-              <span className="text-[11px] font-mono text-[#4A7C59] font-bold">Vector Score Mapping</span>
-              <span className="text-xs font-bold text-[#0F172A] flex items-center gap-1 hover:underline cursor-pointer transition">Configure Panel <Icon.ArrowRight /></span>
-            </div>
+            <form onSubmit={sendMessageToAi} className="p-3 bg-white border-t border-gray-100 flex gap-2">
+              <input 
+                type="text" 
+                value={userInput}
+                onChange={e => setUserInput(e.target.value)}
+                placeholder="Ask about careers, CVs, salaries..."
+                className="flex-grow px-3 py-2 text-xs border border-gray-200 bg-gray-50 rounded-xl outline-none focus:border-[#4A7C59] focus:bg-white"
+              />
+              <button type="submit" className="px-4 py-2 bg-[#4A7C59] hover:bg-[#3d664a] text-white text-xs font-bold rounded-xl shadow-xs transition">
+                Send
+              </button>
+            </form>
+
           </div>
+        )}
 
-          {/* Ad Card 2: Form-Driven CV Builder */}
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-6 rounded-2xl flex flex-col justify-between space-y-6 shadow-sm hover:border-[#4A7C59]/50 transition-all duration-300 group">
-            <div className="space-y-2">
-              <span className="text-[9px] bg-slate-100 text-slate-700 font-bold px-2 py-0.5 rounded-md uppercase tracking-widest border border-slate-200">Candidate Tool</span>
-              <h3 className="text-base font-bold tracking-tight text-[#0F172A] group-hover:text-[#4A7C59] transition-colors">Form-Driven Document CV Builder</h3>
-              <p className="text-xs text-[#57657A] leading-relaxed">Input competency attributes inside a unified user metadata form block to synthesize formal downloadable print documents instantly.</p>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t border-[#E2E8F0]">
-              <span className="text-[11px] font-mono text-slate-500 font-bold">Print/PDF Generator</span>
-              <span className="text-xs font-bold text-[#4A7C59] flex items-center gap-1 hover:underline cursor-pointer transition">Compile Assets <Icon.ArrowRight /></span>
-            </div>
-          </div>
-
-          {/* Ad Card 3: External API Gateways */}
-          <div className="bg-[#F8FAFC] border border-[#E2E8F0] p-6 rounded-2xl flex flex-col justify-between space-y-6 shadow-sm hover:border-[#4A7C59]/50 transition-all duration-300 group">
-            <div className="space-y-2">
-              <span className="text-[9px] bg-[#4A7C59]/10 text-[#4A7C59] font-bold px-2 py-0.5 rounded-md uppercase tracking-widest border border-[#4A7C59]/20">External API Channels</span>
-              <h3 className="text-base font-bold tracking-tight text-[#0F172A] group-hover:text-[#4A7C59] transition-colors">SendGrid, Twilio & Calendar Links</h3>
-              <p className="text-xs text-[#57657A] leading-relaxed">Synchronize candidate operations using high-volume external notification gateways, scheduling intervals directly inside target mailboxes.</p>
-            </div>
-            <div className="flex items-center justify-between pt-4 border-t border-[#E2E8F0]">
-              <span className="text-[11px] font-mono text-[#4A7C59] font-bold">OAuth2 Synchronization</span>
-              <span className="text-xs font-bold text-[#0F172A] flex items-center gap-1 hover:underline cursor-pointer transition">View Endpoints <Icon.ArrowRight /></span>
-            </div>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ─── 4. TECHNICAL DETAILS COMPLIANCE FEED (System Status View) ─── */}
-      <section className="max-w-screen-xl mx-auto px-6 mb-20">
-        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-center shadow-sm">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs text-[#4A7C59] font-bold uppercase tracking-widest">
-              <Icon.TrendingUp /> Infrastructure Scale Compliance
-            </div>
-            <h2 className="text-2xl font-black text-[#0F172A] tracking-tight leading-tight">
-              Relational Database Framework Powered By SQL Server
-            </h2>
-            <p className="text-xs text-[#57657A] leading-relaxed">
-              Our entity mapping architecture maintains zero system gaps by resetting metadata identifiers automatically upon structural record termination. Experience safe cascade isolation controls across all user role layers.
-            </p>
-            <div className="space-y-2.5 pt-2">
-              <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold"><span className="text-[#4A7C59]"><Icon.CheckVerified /></span> Secure Role-Based Access Controls (RBAC)</div>
-              <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold"><span className="text-[#4A7C59]"><Icon.CheckVerified /></span> Encrypted Password Credentials Layer Using BCrypt</div>
-              <div className="flex items-center gap-2 text-xs text-slate-700 font-semibold"><span className="text-[#4A7C59]"><Icon.CheckVerified /></span> Normalized DB Schema Decoupling Users & Role-Accounts</div>
-            </div>
-          </div>
-          
-          {/* Light-Theme Clean Technical Code Box */}
-          <div className="bg-[#1E293B] border border-slate-800 rounded-xl p-5 font-mono text-[11px] text-slate-300 space-y-2 shadow-inner">
-            <p className="text-[#4A7C59] font-bold">[SYSTEM SCHEDULING DISPATCH DEPLOYMENT]</p>
-            <p className="text-slate-500"># Initializing TLS handshake protocol mappings...</p>
-            <div className="p-3 bg-[#0F172A] text-emerald-400 rounded-lg space-y-1 text-[10px] border border-slate-900">
-              <div>&gt; _context.RoleAccounts.AnyAsync(identity_trace);</div>
-              <div>&gt; Status: 200 OK Execution cleared.</div>
-              <div className="text-[#4A7C59]">&gt; Live Telemetry Engine Synced with Port 5183.</div>
-            </div>
-            <p className="text-[10px] text-slate-500 text-right italic">JobMart Platform V1.0.0</p>
-          </div>
-        </div>
-      </section>
-
-      <Footer /> 
+      </div>
     </div>
   );
 };

@@ -24,5 +24,6 @@ namespace Backend.Models
 
         // Relationship property navigation matching your DbContext configuration
         public ICollection<Application> Applications { get; set; } = new List<Application>();
+        public string Description { get; set; } = string.Empty; // string
     }
 }

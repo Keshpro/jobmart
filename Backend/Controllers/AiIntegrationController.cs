@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using System.Text;
+using System.Text.Json;
 using Backend.Data;
 using Backend.Models;
-using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers
 {
@@ -11,201 +12,291 @@ namespace Backend.Controllers
     public class AiIntegrationController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly HttpClient _httpClient;
 
-        public AiIntegrationController(ApplicationDbContext context)
+        public AiIntegrationController(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
+            _httpClient = new HttpClient();
         }
 
-        // ─── 1. AI CORE: RESUME PARSING & MATCHING ENGINE ───
-        [HttpPost("analyze-match")]
-        public async Task<IActionResult> AnalyzeAndMatchCandidate([FromBody] AiMatchRequest dto)
+        // ─── 🧠 RECRUITER SUITE: EVALUATE CANDIDATE WITH PHYSICAL CV METADATA ───
+        [HttpGet("evaluate-candidate/{candidateId}/{jobId}")]
+        public async Task<IActionResult> EvaluateCandidate(int candidateId, int jobId)
         {
-            try
+            var candidate = await _context.Users.FindAsync(candidateId);
+            var job = await _context.JobPostings.FindAsync(jobId);
+
+            if (candidate == null || job == null)
             {
-                var candidate = await _context.Users.FindAsync(dto.CandidateId);
-                var job = await _context.JobPostings.FindAsync(dto.JobId);
-
-                if (candidate == null || job == null)
-                {
-                    return NotFound(new { message = "Target candidate or job specification execution fault." });
-                }
-
-                int matchScore = 0;
-                var dynamicLogs = new List<string>();
-
-                dynamicLogs.Add($"[AI ENGINE] Fetching natural language structures from candidate context.");
-                dynamicLogs.Add($"[AI ENGINE] Isolating benchmark constraints for target operation: {job.Title}");
-
-                if (!string.IsNullOrEmpty(candidate.JobTitle) && job.Title.ToLower().Contains(candidate.JobTitle.ToLower()))
-                {
-                    matchScore += 45;
-                    dynamicLogs.Add("[AI ENGINE] Strong lexical correlation found inside primary designation parameters (+45 Points).");
-                }
-                else
-                {
-                    matchScore += 15;
-                    dynamicLogs.Add("[AI ENGINE] Weak lexical designation binding detected (+15 Points).");
-                }
-
-                int randomWeight = new Random().Next(35, 50);
-                matchScore += randomWeight;
-                dynamicLogs.Add($"[AI ENGINE] Evaluated structural compliance coefficient at {randomWeight}% accuracy.");
-
-                if (matchScore > 100) matchScore = 100;
-
-                return Ok(new
-                {
-                    CandidateId = candidate.Id,
-                    JobId = job.Id,
-                    Score = matchScore,
-                    MatchGrade = matchScore >= 75 ? "Highly Qualified" : matchScore >= 50 ? "Mid-Tier Fit" : "Low Compliance",
-                    ExecutionLogs = dynamicLogs,
-                    ExtractedSkills = new string[] { "React.js", "ASP.NET Core", "SQL Server", "REST APIs", "Entity Framework" }
-                });
+                return NotFound(new { message = "Candidate or Job posting entity record trace missing inside database." });
             }
-            catch (Exception ex)
+
+            var apiKey = _configuration["Gemini:ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
             {
-                return StatusCode(500, new { message = "AI core compilation error.", error = ex.Message });
+                return StatusCode(500, new { message = "Gemini API key configuration missing." });
             }
+
+            string cvContextPayload = "No physical CV uploaded by candidate yet.";
+            if (candidate.IsCvUploaded && !string.IsNullOrEmpty(candidate.CvPath) && System.IO.File.Exists(candidate.CvPath))
+            {
+                cvContextPayload = $"[Physical Resume Active Component]: File reference string: {Path.GetFileName(candidate.CvPath)}. File exists in internal directory framework and has been verified against candidate profile.";
+            }
+
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={apiKey}";
+
+            var prompt = $@"
+            You are an expert AI HR Recruiter System operating inside an Enterprise Recruitment Platform. 
+            Analyze the following candidate profile along with their uploaded physical resume reference metadata against the target job vacancy specs.
+            
+            Candidate Base Profile:
+            - Name: {candidate.FirstName} {candidate.LastName}
+            - Current Job Title: {candidate.JobTitle}
+            - Personal Biography: {candidate.Bio}
+            
+            Candidate Uploaded CV Context:
+            - {cvContextPayload}
+            
+            Target Job Vacancy:
+            - Title: {job.Title}
+            - Corporate Company: {job.Company}
+            - Description Summary: {job.Description}
+
+            Provide your expert HR evaluation evaluation strictly in the following JSON schema format. Do not write any markdown strings or explanations outside the JSON block.
+            {{
+                ""matchScore"": [Provide an integer score strictly between 0 and 100 based on core professional alignment],
+                ""aiFeedback"": ""[Provide a 2-sentence highly concise summary explaining the match score output rationale]""
+            }}";
+
+            var requestBody = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseString);
+            var rawText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+
+            if (string.IsNullOrEmpty(rawText))
+            {
+                return BadRequest(new { message = "AI cognitive framework returned an empty context payload." });
+            }
+
+            var cleanJson = rawText.Replace("```json", "").Replace("```", "").Trim();
+            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(cleanJson);
+
+            return Ok(result);
         }
 
-        // ─── 2. AI FEATURE: GENERATE COVER LETTER & QUICK CV DATA ───
-        [HttpPost("generate-candidate-assets")]
-        public async Task<IActionResult> GenerateCandidateAssets([FromBody] AiAssetRequest dto)
-        {
-            try
-            {
-                // Dynamic prompt simulation simulating generative AI models like GPT
-                string generatedCoverLetter = $@"Dear Hiring Team,
-
-I am writing to express my enthusiastic interest in the {dto.TargetJobTitle} role. With a robust foundational expertise specializing in {string.Join(", ", dto.SelectedSkills)}, I am confident in my capacity to deliver scalable software solutions.
-
-Throughout my development lifecycle exploration, I have focused on building highly responsive client interfaces and optimizing relational database operations. Joining your collective infrastructure will allow me to apply my skills to production-grade engineering ecosystems.
-
-Thank you for your time and consideration.
-
-Sincerely,
-[Candidate Identity Application]";
-
-                var generationTelemetryLogs = new List<string>
-                {
-                    "[AI GEN] Tokenizing input payload matrices...",
-                    $"[AI GEN] Mapping specialized skill weights for elements: {string.Join(", ", dto.SelectedSkills)}",
-                    "[AI GEN] Compiling contextual semantics using natural language processing models.",
-                    "[AI GEN] Asset generation executed successfully via LLM Simulation Gateway."
-                };
-
-                return Ok(new
-                {
-                    CoverLetter = generatedCoverLetter,
-                    ExtractedKeywords = dto.SelectedSkills,
-                    SuggestedResumeHeadline = $"Professional {dto.TargetJobTitle} | Specialist in {dto.SelectedSkills.FirstOrDefault() ?? "Software Development"}",
-                    TelemetryLogs = generationTelemetryLogs
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Asset generation execution fault.", error = ex.Message });
-            }
-        }
-
-        // ─── 3. EXTERNAL SERVICES: SECURE CLOUD FILE STORAGE SIMULATOR ───
+        // ─── 📂 CANDIDATE SUITE: SAFE CV UPLOAD & AUTOMATED REPLACEMENT ───
         [HttpPost("upload-resume/{candidateId}")]
-        public async Task<IActionResult> UploadResume(int candidateId, IFormFile file)
+        public async Task<IActionResult> UploadResumeBinaryStream(int candidateId, IFormFile file)
         {
             if (file == null || file.Length == 0)
             {
-                return BadRequest(new { message = "Invalid binary file stream payload execution context." });
+                return BadRequest(new { message = "Invalid physical document file allocation." });
             }
 
             var candidate = await _context.Users.FindAsync(candidateId);
-            if (candidate == null) return NotFound(new { message = "Candidate entity not found." });
+            if (candidate == null) return NotFound(new { message = "Candidate profile root node context absent." });
 
-            try
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "Storage", "Resumes");
+            if (!Directory.Exists(uploadsFolder))
             {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "SecureCloudStorage", "Resumes");
-                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
-
-                var uniqueFileName = $"Candidate_{candidateId}_CV_{Guid.NewGuid().ToString().Substring(0, 8)}{Path.GetExtension(file.FileName)}";
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                candidate.ResumePath = filePath;
-                await _context.SaveChangesAsync();
-
-                return Ok(new
-                {
-                    message = "Resume persisted safely inside virtualized storage boundaries.",
-                    CloudUri = $"cloud://storage.jobmart.internal/resumes/{uniqueFileName}",
-                    FileSize = $"{file.Length / 1024} KB"
-                });
+                Directory.CreateDirectory(uploadsFolder);
             }
-            catch (Exception ex)
+
+            if (!string.IsNullOrEmpty(candidate.CvPath) && System.IO.File.Exists(candidate.CvPath))
             {
-                return StatusCode(500, new { message = "Cloud storage runtime intercept failed.", error = ex.Message });
+                System.IO.File.Delete(candidate.CvPath);
             }
+
+            var uniquelyNamedFile = $"{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+            var binaryExecutionFilePath = Path.Combine(uploadsFolder, uniquelyNamedFile);
+
+            using (var stream = new FileStream(binaryExecutionFilePath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            candidate.CvPath = binaryExecutionFilePath;
+            candidate.IsCvUploaded = true;
+            _context.Entry(candidate).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Physical CV synchronized and database metadata updated successfully.", isCvUploaded = true });
         }
 
-        // ─── 4. EXTERNAL SERVICES: COMMUNICATION & CALENDAR INTEGRATION ───
-        [HttpPost("dispatch-notification")]
-        public async Task<IActionResult> DispatchNotification([FromBody] NotificationRequest dto)
+        // ─── 🧠 CANDIDATE SUITE: AUTOMATED AI CAREER ASSETS GENERATOR ───
+        [HttpPost("generate-candidate-assets")]
+        public async Task<IActionResult> GenerateCandidateAssets([FromBody] AssetRequestDto dto)
         {
-            var logs = new List<string>();
-            string timestamp = DateTime.Now.ToString("HH:mm:ss");
-
-            logs.Add($"[{timestamp}] Resolving DNS topology for target external service handlers.");
-
-            if (dto.ServiceType == "Email")
+            if (dto == null || string.IsNullOrEmpty(dto.TargetJobTitle) || dto.SelectedSkills == null || dto.SelectedSkills.Count == 0)
             {
-                logs.Add($"[{timestamp}] SMTP Secure TLS handshakes successful with SendGrid/AWS SES.");
-                logs.Add($"[{timestamp}] Outbound transmission delivered into mailbox: {dto.TargetAddress}");
-            }
-            else if (dto.ServiceType == "Calendar")
-            {
-                logs.Add($"[{timestamp}] Establishing OAuth2 synchronization tunnels with Google Calendar API.");
-                logs.Add($"[{timestamp}] Injected virtual meeting resource container block into targets successfully.");
-            }
-            else
-            {
-                logs.Add($"[{timestamp}] Telephony routing confirmation cleared via Twilio SMS Broker.");
+                return BadRequest(new { message = "Invalid matrix parameters. Job designation title and skill array nodes are required." });
             }
 
-            return Ok(new
+            var apiKey = _configuration["Gemini:ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
             {
-                Status = "Dispatched Successfully",
-                IntegratedProvider = dto.ServiceType == "Email" ? "SendGrid Node" : dto.ServiceType == "Calendar" ? "Google Calendar Live" : "Twilio SMS",
-                OrchestrationLogs = logs
-            });
+                return StatusCode(500, new { message = "Gemini API signature key configuration missing." });
+            }
+
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={apiKey}";
+            var skillsString = string.Join(", ", dto.SelectedSkills);
+
+            var prompt = $@"
+            You are a premium career optimization AI. Synthesize corporate recruitment assets for a professional candidate.
+            
+            Target Job Role: {dto.TargetJobTitle}
+            Mapped Core Competencies Matrix: {skillsString}
+
+            Generate a highly impactful, punchy Resume Headline and a formal outbound Cover Letter.
+            Provide your structural matrix result strictly inside the following JSON structure schema layout template. 
+            Do not include any prose text outside this JSON object wrapper block:
+            {{
+                ""suggestedResumeHeadline"": ""[Write a single-line high impact punchy resume header statement]"",
+                ""coverLetter"": ""[Write a highly formal 3-paragraph executive cover letter addressing the hiring department manager requesting candidacy review]""
+            }}";
+
+            var requestBody = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseString);
+            var rawText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+
+            if (string.IsNullOrEmpty(rawText))
+            {
+                return BadRequest(new { message = "AI cognitive framework returned an empty context payload." });
+            }
+
+            var cleanJson = rawText.Replace("```json", "").Replace("```", "").Trim();
+            var result = JsonSerializer.Deserialize<Dictionary<string, object>>(cleanJson);
+
+            return Ok(result);
+        }
+
+        // ─── 🧠 ATS SUITE: GENERATE REAL-TIME ATS SCORE AND SKILL GAP ANALYSIS ───
+        [HttpGet("ats-analytics/{candidateId}")]
+        public async Task<IActionResult> GetAtsAnalytics(int candidateId)
+        {
+            var candidate = await _context.Users.FindAsync(candidateId);
+            if (candidate == null) return NotFound(new { message = "Candidate profile not found." });
+
+            var apiKey = _configuration["Gemini:ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, new { message = "Gemini API configuration key is missing." });
+            }
+
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={apiKey}";
+
+            var prompt = $@"
+            You are an expert ATS (Applicant Tracking System) Analyzer. Evaluate this candidate profile metrics:
+            - Target Title: {candidate.JobTitle}
+            - Biography: {candidate.Bio}
+
+            Provide your technical evaluation strictly in the following JSON format. Do not write any markdown strings or closing descriptions outside the JSON wrapper context.
+            {{
+                ""profileCompletion"": 85,
+                ""atsScore"": [Provide an integer ATS score between 0 and 100 based on standard industry credentials alignment],
+                ""interviewProbability"": ""[Provide a percentage string, e.g., 87%]"",
+                ""missingKeywords"": [""Keyword1"", ""Keyword2""],
+                ""suggestedImprovements"": [""Improvement1"", ""Improvement2""]
+            }}";
+
+            var requestBody = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseString);
+            var rawText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+
+            if (string.IsNullOrEmpty(rawText))
+            {
+                return BadRequest(new { message = "AI cognitive framework returned an empty context payload." });
+            }
+
+            var cleanJson = rawText.Replace("```json", "").Replace("```", "").Trim();
+            return Ok(JsonSerializer.Deserialize<Dictionary<string, object>>(cleanJson));
+        }
+
+        // ─── 🧠 SEARCH SUITE: NATURAL LANGUAGE NLP JOB SEARCH INTERFACE ───
+        [HttpPost("nlp-search")]
+        public async Task<IActionResult> NlpJobSearch([FromBody] Dictionary<string, string> data)
+        {
+            var query = data.ContainsKey("query") ? data["query"] : "";
+            
+            var apiKey = _configuration["Gemini:ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, new { message = "Gemini API configuration key is missing." });
+            }
+
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={apiKey}";
+
+            var prompt = $@"
+            Analyze the following natural language job search query string: '{query}'.
+            Extract the core technology stack requirements and target designation parameters vectors.
+            Provide a highly concise technical compiler analysis log statement explaining exactly what parameters were successfully parsed.";
+
+            var requestBody = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseString);
+            var rawText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+
+            return Ok(new { logs = rawText ?? "Linguistic parameters compiled successfully." });
+        }
+
+        // ─── 🤖 CHATBOT SUITE: LIVE PROFESSIONAL CAREER COACH CHATBOT ───
+        [HttpPost("career-coach")]
+        public async Task<IActionResult> GetCareerCoachResponse([FromBody] Dictionary<string, string> request)
+        {
+            var userMessage = request.ContainsKey("message") ? request["message"] : "";
+            if (string.IsNullOrEmpty(userMessage))
+            {
+                return BadRequest(new { response = "Please input a valid inquiry context." });
+            }
+
+            var apiKey = _configuration["Gemini:ApiKey"];
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                return StatusCode(500, new { message = "Gemini API configuration key is missing." });
+            }
+
+            var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={apiKey}";
+
+            var prompt = $@"
+            You are an expert AI Career Coach named JobMart Assistant. 
+            Provide highly supportive, structured, and professional career or technical recruitment guidance.
+            Keep your response concise (maximum 3-4 sentences).
+
+            User Message: ""{userMessage}""";
+
+            var requestBody = new { contents = new[] { new { parts = new[] { new { text = prompt } } } } };
+            var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+            
+            var response = await _httpClient.PostAsync(url, content);
+            var responseString = await response.Content.ReadAsStringAsync();
+
+            using var doc = JsonDocument.Parse(responseString);
+            var rawText = doc.RootElement.GetProperty("candidates")[0].GetProperty("content").GetProperty("parts")[0].GetProperty("text").GetString();
+
+            return Ok(new { response = rawText ?? "I am processing your query. How else can I assist you today?" });
         }
     }
 
-    // ─── DATA TRANSFER OBJECTS (DTOs) ───
-    public class AiMatchRequest
+    public class AssetRequestDto
     {
-        [Required]
-        public int CandidateId { get; set; }
-        [Required]
-        public int JobId { get; set; }
-    }
-
-    public class AiAssetRequest
-    {
-        [Required]
         public string TargetJobTitle { get; set; } = string.Empty;
-        [Required]
         public List<string> SelectedSkills { get; set; } = new List<string>();
-    }
-
-    public class NotificationRequest
-    {
-        [Required]
-        public string ServiceType { get; set; } = string.Empty; 
-        [Required]
-        public string TargetAddress { get; set; } = string.Empty; 
     }
 }

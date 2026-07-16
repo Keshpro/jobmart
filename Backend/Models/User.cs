@@ -11,10 +11,14 @@ namespace Backend.Models
 
         public string? JobTitle { get; set; } = string.Empty;
 
-        public string? ResumePath { get; set; } = string.Empty; // CV saved File Path
+        public string? CvPath { get; set; } = string.Empty; // CV saved File Path
+
+        public bool IsCvUploaded { get; set; } = false;
+        
 public string? ExtractedSkills { get; set; } = string.Empty; // AI (Comma-separated)
         
         // Navigation property for applications submitted by the user (if the user is a candidate)
         public ICollection<Application>? Applications { get; set; }
+        public string Bio { get; internal set; } = string.Empty;
     }
 }
